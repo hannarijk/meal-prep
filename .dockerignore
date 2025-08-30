@@ -1,0 +1,14 @@
+.git
+.gitignore
+README.md
+Dockerfile*
+docker-compose*
+.dockerignore
+*.log
+tmp/
+vendor/
+.env.local
+.env.test
+node_modules/
+coverage/
+*.test

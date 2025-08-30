@@ -1,0 +1,26 @@
+{
+  "valid_users": [
+    {
+      "email": "john@example.com",
+      "password": "password123",
+      "expected_id": 1
+    },
+    {
+      "email": "jane@example.com",
+      "password": "securepass456",
+      "expected_id": 2
+    }
+  ],
+  "invalid_users": [
+    {
+      "email": "invalid-email",
+      "password": "password123",
+      "expected_error": "invalid email format"
+    },
+    {
+      "email": "test@example.com",
+      "password": "123",
+      "expected_error": "password too weak"
+    }
+  ]
+}

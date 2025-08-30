@@ -1,0 +1,9 @@
+.env
+logs/*.log
+
+# Editor / IDE files
+.idea/
+*.iml
+
+# OS files
+.DS_Store
