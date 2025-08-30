@@ -1,201 +1,475 @@
-# How to run
+# The Meal-Prep Project
+
+A production-ready microservices system for weekly meal planning and recipe recommendations.
+
+----
+
+## Architecture overview
+
+TBD
+
+----
+
+## Quick Start
+
+### Prerequisites
+
+- [Go 1.23+](https://golang.org/dl/)
+- [Docker & Docker Compose](https://docs.docker.com/get-docker/)
+- Make (optional, for convenience commands)
+
+### Installation
+
 ```bash
-  make build
-````
-#### Start services
+  # Clone the repository
+git clone https://github.com/hannarijk/meal-prep.git
+cd meal-prep
+
+# Start with Docker (recommended)
+make up
+
+# Or start individual services for development
+go run ./services/auth &
+go run ./services/dish-catalogue &
+go run ./services/recommendations &
+```
+
+### Verify Installation
+
 ```bash
-  make up
-````
-#### Change log level
+  # Check all services are healthy
+curl http://localhost:8001/health  # Auth Service
+curl http://localhost:8002/health  # Dish Catalogue  
+curl http://localhost:8003/health  # Recommendations
+
+# Expected response: {"status": "healthy", "service": "service-name"}
+```
+
+----
+
+## API Documentation
+
+### Authentication Service (Port 8001)
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/health` | GET | Health check | No |
+| `/register` | POST | User registration | No |
+| `/login` | POST | User authentication | No |
+
+#### Registration
+
 ```bash
-  LOG_LEVEL=debug make up
-```
-
-# Docker
-```bash
-  docker-compose down -v
-```
-```bash
-  docker-compose up -d
-```
-#### Optional: Remove all unused volumes (BE CAREFUL!)
-```bash
-  docker volume prune
-````
-
-#### Optional: Remove all unused volumes without confirmation
-```bash
-  docker volume prune -f
-```
-
-## Terminal 1 - Auth with logging
-```bash
-  go run ./services/auth 2>&1 | tee auth.log
-```
-
-## Terminal 2 - Dish-catalogue with logging
-```bash
-  go run ./services/dish-catalogue 2>&1 | tee dish-catalogue.log
-```
-
-## Terminal 3 - Recommendations with logging
-```bash
-  go run ./services/recommendations 2>&1 | tee recommendations.log
-```
-
-# Testing
-
-### Auth
-```bash
-  curl http://localhost:8001/health
-```
-
-### Dish-catalogue
-```bash
-  curl http://localhost:8002/health
-```
-
-### Recommendations
-```bash 
-  curl http://localhost:8003/health
-```
-
-## Scenarios
-
-### Step 1: User Registration & Authentication
-```bash 
-    curl -X POST http://localhost:8001/register \
-      -H "Content-Type: application/json" \
-      -d '{
-        "email": "foodie@example.com",
-        "password": "password123"
-      }'
-```
-
-### Step 2: Set up token from response
-```bash 
-  export TOKEN="your-jwt-token-here"
-```
-
-### Step 2: Explore Available Dishes & Categories
-#### Get all categories
-```bash 
-  curl http://localhost:8002/categories
-```
-#### Get all dishes
-```bash 
-  curl http://localhost:8002/dishes
-```
-#### Get dishes by category
-```bash 
-  curl http://localhost:8002/categories/1/dishes
-```
-
-### Step 3: Set User Preferences
-#### Set preferences for Meat (1) and Fish (3) categories
-```bash 
-    curl -X PUT http://localhost:8003/preferences \
-      -H "Content-Type: application/json" \
-      -H "Authorization: Bearer $TOKEN" \
-      -d '{
-        "preferred_categories": [1, 3]
-      }'
-```
-
-### Step 4: Get Recommendations (Different Algorithms)
-#### Get hybrid recommendations (default)
-```bash
-  curl -H "Authorization: Bearer $TOKEN" \
-"http://localhost:8003/recommendations?limit=5"
-```
-
-#### Get preference-based recommendations
-```bash
-  curl -H "Authorization: Bearer $TOKEN" \
-"http://localhost:8003/recommendations?algorithm=preference&limit=5"
-```
-
-#### Get time-decay recommendations
-```bash
-  curl -H "Authorization: Bearer $TOKEN" \
-"http://localhost:8003/recommendations?algorithm=time_decay&limit=5"
-```
-
-### Step 5: Simulate Cooking & Rating
-#### Log that you cooked dish ID 1 (Pasta with Meatballs) with rating 5
-```bash
-  curl -X POST http://localhost:8003/cooking \
+  curl -X POST http://localhost:8001/register \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
   -d '{
-    "dish_id": 1,
-    "rating": 5
+    "email": "user@example.com",
+    "password": "securepassword123"
   }'
 ```
 
-#### Log cooking dish ID 3 (Grilled Chicken) with rating 4
+**Response:**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "created_at": "2025-08-28T12:00:00Z"
+  }
+}
+```
+
+### Dish Catalogue Service (Port 8002)
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/health` | GET | Health check | No |
+| `/dishes` | GET | List all dishes | No |
+| `/dishes` | POST | Create new dish | **Yes** |
+| `/dishes/{id}` | GET | Get specific dish | No |
+| `/dishes/{id}` | PUT | Update dish | **Yes** |
+| `/dishes/{id}` | DELETE | Delete dish | **Yes** |
+| `/categories` | GET | List categories | No |
+| `/categories/{id}/dishes` | GET | Dishes by category | No |
+
+#### Create Dish (Protected)
+
+```bash
+  curl -X POST http://localhost:8002/dishes \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "name": "Avocado Toast",
+    "description": "Healthy breakfast with fresh avocado",
+    "category_id": 1
+  }'
+```
+
+### Recommendations Service (Port 8003)
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/health` | GET | Health check | No |
+| `/recommendations` | GET | Get personalized recommendations | **Yes** |
+| `/preferences` | GET | Get user preferences | **Yes** |
+| `/preferences` | PUT | Update user preferences | **Yes** |
+| `/cooking` | POST | Log cooking activity | **Yes** |
+| `/cooking/history` | GET | Get cooking history | **Yes** |
+
+#### Get Recommendations
+
+```bash
+  # Get hybrid recommendations (default)
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  "http://localhost:8003/recommendations?limit=5"
+
+# Get time-decay based recommendations  
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  "http://localhost:8003/recommendations?algorithm=time_decay&limit=10"
+
+# Get preference-based recommendations
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  "http://localhost:8003/recommendations?algorithm=preference&limit=8"
+```
+
+#### Set Food Preferences
+
+```bash
+  curl -X PUT http://localhost:8003/preferences \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "preferred_categories": [1, 3, 5]
+  }'
+```
+
+#### Log Cooking Activity
+
 ```bash
   curl -X POST http://localhost:8003/cooking \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
-    "dish_id": 3,
+    "dish_id": 5,
     "rating": 4
   }'
 ```
 
-### Step 6: Check Cooking History
-#### Get cooking history
-```bash
-  curl -H "Authorization: Bearer $TOKEN" \
-"http://localhost:8003/cooking/history?limit=10"
+----
+
+## Recommendation Algorithms
+
+### Time Decay Algorithm
+Prioritizes dishes based on how long it's been since you last cooked them:
+
+- **Recently cooked** (< 7 days): Low priority (0.1)
+- **Good to revisit** (7-30 days): Medium priority (0.7)
+- **Perfect time** (30-90 days): High priority (1.0)
+- **Long time favorites** (90+ days): Highest priority (1.2)
+- **Never cooked**: Medium priority (0.5)
+
+### Hybrid Algorithm (Default)
+Combines time decay and user preferences:
+- **Time Decay Weight**: 60%
+- **Preference Weight**: 40%
+- **Final Score**: `(time_score × 0.6) + (preference_score × 0.4)`
+
+### Preference Algorithm
+Pure preference-based recommendations using your selected categories.
+
+----
+
+## Development
+
+### Project Structure
+
+```
+meal-prep/
+├── services/                 # Microservices
+│   ├── auth/                # Authentication service
+│   ├── dish-catalogue/      # Recipe management
+│   └── recommendations/     # AI recommendations
+├── shared/                  # Shared libraries
+│   ├── database/           # Database connections
+│   ├── middleware/         # HTTP middleware
+│   ├── models/            # Data models
+│   ├── utils/             # Utilities (JWT, etc.)
+│   └── logging/           # Structured logging
+├── test/                   # Integration & E2E tests
+├── scripts/               # Database scripts
+└── deployments/          # Kubernetes manifests
 ```
 
-### Step 7: Get Updated Recommendations
-#### Get new recommendations (should now consider cooking history)
-```bash
-  curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8003/recommendations?algorithm=time_decay&limit=8"
-```
-Notice how:
-* Recently cooked dishes (same day) get lower scores
-* Never-cooked dishes get medium priority
-* The reason field explains why each dish was recommended
+### Local Development
 
-### Step 8: Test Dish Management (Protected)
-#### Create a new dish
 ```bash
-  curl -X POST http://localhost:8002/dishes \
+  # Start dependencies only
+docker compose up postgres -d
+
+# Run services individually for development
+go run ./services/auth
+go run ./services/dish-catalogue  
+go run ./services/recommendations
+```
+
+### Environment Variables
+
+Create a `.env` file in the project root:
+
+```bash
+  # Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres123
+DB_NAME=mealprep
+
+# JWT Configuration  
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+
+# Service Ports
+AUTH_PORT=8001
+DISH_CATALOGUE_PORT=8002
+RECOMMENDATIONS_PORT=8003
+
+# Logging
+LOG_LEVEL=info
+LOG_FORMAT=json
+```
+
+### Building
+
+```bash
+  # Build all services
+make build
+
+# Build specific service
+go build -o bin/auth ./services/auth
+go build -o bin/dish-catalogue ./services/dish-catalogue
+go build -o bin/recommendations ./services/recommendations
+```
+
+----
+
+## Testing
+
+The project follows Go testing best practices with three test layers:
+
+### Unit Tests (Business Logic)
+```bash
+  # Run all unit tests
+make test-unit
+
+# Test specific service
+go test ./services/auth/... -v
+
+# With coverage
+make test-coverage
+```
+
+### Integration Tests (Real Database)
+```bash
+  # Run integration tests with testcontainers
+make test-integration
+
+# Skip integration tests (for CI speed)
+go test ./... -short
+```
+
+### End-to-End Tests (Complete Workflows)
+```bash
+  # Run full API workflow tests
+make test-e2e
+
+# Run all test types
+make test-all
+```
+
+### Test Coverage
+
+```bash
+  # Generate coverage report
+make test-coverage
+open coverage.html
+```
+
+----
+
+## Monitoring
+
+### Structured Logging
+
+All services output structured JSON logs suitable for log aggregation:
+
+```json
+{
+  "timestamp": "2025-08-28T12:00:00Z",
+  "level": "info", 
+  "message": "Request completed",
+  "service": "auth-service",
+  "request_id": "abc-123-def",
+  "user_id": 42,
+  "method": "POST",
+  "uri": "/login",
+  "status_code": 200,
+  "duration_ms": 45
+}
+```
+
+### Log Levels
+
+- `DEBUG`: Detailed information for debugging
+- `INFO`: General operational messages
+- `WARN`: Warning conditions
+- `ERROR`: Error conditions requiring attention
+
+Set via `LOG_LEVEL` environment variable.
+```bash
+  LOG_LEVEL=debug make up
+```
+
+----
+
+## Contributing
+
+### Code Standards
+
+- Follow [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments)
+- Use [gofmt](https://golang.org/cmd/gofmt/) for formatting
+- Run [golint](https://github.com/golang/lint) and [go vet](https://golang.org/cmd/vet/)
+- Write tests for all new features
+- Update documentation for API changes
+
+### Development Workflow
+
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+3. **Write** tests for your changes
+4. **Ensure** tests pass: `make test-all`
+5. **Commit** with conventional commits: `feat: add amazing feature`
+6. **Push** to your branch: `git push origin feature/amazing-feature`
+7. **Open** a Pull Request
+
+### Running Tests
+
+```bash
+  # Before committing - run all tests
+make test-all
+
+# Quick validation
+make test-unit
+
+# Full integration testing
+make test-integration
+```
+
+----
+
+## Makefile Commands
+
+| Command | Description |
+|---------|-------------|
+| `make build` | Build Docker images |
+| `make up` | Start all services |
+| `make down` | Stop all services |
+| `make logs` | View all service logs |
+| `make test-unit` | Run unit tests |
+| `make test-integration` | Run integration tests |
+| `make test-e2e` | Run end-to-end tests |
+| `make test-all` | Run all test types |
+| `make clean` | Clean up containers and volumes |
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `DB_HOST` | PostgreSQL host | `localhost` | Yes |
+| `DB_PORT` | PostgreSQL port | `5432` | No |
+| `DB_USER` | Database username | `postgres` | Yes |
+| `DB_PASSWORD` | Database password | - | Yes |
+| `DB_NAME` | Database name | `mealprep` | Yes |
+| `JWT_SECRET` | JWT signing secret | - | Yes |
+| `LOG_LEVEL` | Logging level | `info` | No |
+| `LOG_FORMAT` | Log format (`json`/`text`) | `json` | No |
+
+### Service Ports
+
+| Service | Port | Description |
+|---------|------|-------------|
+| Auth | 8001 | User authentication |
+| Dish Catalogue | 8002 | Recipe management |
+| Recommendations | 8003 | AI recommendations |
+| PostgreSQL | 5432 | Database |
+
+----
+
+## Examples
+
+### Complete User Journey
+
+```bash
+  # 1. Register new user
+RESPONSE=$(curl -s -X POST http://localhost:8001/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"chef@example.com","password":"mycookingpassword"}')
+
+# Extract token
+TOKEN=$(echo $RESPONSE | jq -r '.token')
+
+# 2. Browse available dishes
+curl -s http://localhost:8002/dishes | jq '.[:3]'
+
+# 3. Set food preferences
+curl -X PUT http://localhost:8003/preferences \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"preferred_categories": [1, 3]}'
+
+# 4. Get personalized recommendations  
+curl -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8003/recommendations?limit=5" | jq
+
+# 5. Log cooking activity
+curl -X POST http://localhost:8003/cooking \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"dish_id": 2, "rating": 5}'
+
+# 6. Get updated recommendations (now considers cooking history)
+curl -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8003/recommendations?algorithm=time_decay&limit=5" | jq
+```
+
+### Creating Custom Dishes
+
+```bash
+  # Create breakfast dish
+curl -X POST http://localhost:8002/dishes \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
-    "name": "Protein Cookies",
-    "description": "Healthy dessert",
-    "category_id": 5
+    "name": "Protein Pancakes",
+    "description": "High-protein pancakes with oats and eggs",
+    "category_id": 1
   }'
 ```
-#### Update the dish
+
+### Error Testing
 ```bash
-  curl -X PUT http://localhost:8002/dishes/6 \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "name": "Protein Cookies with Coconut",
-    "description": "Healthy dessert with Coconut"
-  }'
-```
-### Step 9: Error Testing
-#### Test without authentication
+  # Test without authentication
+curl http://localhost:8003/recommendations
+````
+
 ```bash
-  curl http://localhost:8003/recommendations
-```
-#### Test invalid algorithm
-```bash
-  curl -H "Authorization: Bearer $TOKEN" \
+  # Test invalid algorithm
+curl -H "Authorization: Bearer $TOKEN" \
   "http://localhost:8003/recommendations?algorithm=invalid"
-```
-Expected Result: ✅ Success (200) with hybrid recommendations
-```
+````
+Expected Result: Success (200) with hybrid recommendations:
+```json
 {
   "dishes": [...],
   "algorithm": "hybrid",
@@ -205,18 +479,42 @@ Expected Result: ✅ Success (200) with hybrid recommendations
 ```
 Why: The service has a validateAlgorithm() method that defaults to "hybrid" for invalid algorithms instead of throwing an error. This is actually good UX - graceful degradation.
 
-#### Test invalid dish ID
 ```bash
-  curl -X POST http://localhost:8003/cooking \
+# Test invalid dish ID
+curl -X POST http://localhost:8003/cooking \
 -H "Content-Type: application/json" \
 -H "Authorization: Bearer $TOKEN" \
 -d '{"dish_id": 999, "rating": 5}'
 ```
-Expected Result: Status 400 Bad Request
-```
+Expected Result: Status 400 Bad Request:
+```json
 {
   "error": "recommendations_error",
   "code": 400,
   "message": "dish not found"
 }
 ```
+
+----
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Built with [Go](https://golang.org/) and industry-standard libraries
+- Database powered by [PostgreSQL](https://www.postgresql.org/)
+- Containerized with [Docker](https://www.docker.com/)
+- Testing with [Testify](https://github.com/stretchr/testify) and [Testcontainers](https://testcontainers.com/)
+- Recommendation algorithms inspired by Netflix and Spotify approaches
+
+## Support
+
+For questions, issues, or contributions, please:
+
+1. Check existing [Issues](https://github.com/hannarijk/meal-prep/issues)
+2. Open a new issue with detailed description
+3. Join discussions in [Discussions](https://github.com/hannarijk/meal-prep/discussions)
+
+**Built with ❤️ for developers who love Go and great food!**
