@@ -2,13 +2,11 @@
 
 A production-ready microservices system for weekly meal planning and recipe recommendations.
 
-----
 
 ## Architecture overview
 
 TBD
 
-----
 
 ## Quick Start
 
@@ -44,8 +42,6 @@ curl http://localhost:8003/health  # Recommendations
 
 # Expected response: {"status": "healthy", "service": "service-name"}
 ```
-
-----
 
 ## API Documentation
 
@@ -156,8 +152,6 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   }'
 ```
 
-----
-
 ## Recommendation Algorithms
 
 ### Time Decay Algorithm
@@ -177,8 +171,6 @@ Combines time decay and user preferences:
 
 ### Preference Algorithm
 Pure preference-based recommendations using your selected categories.
-
-----
 
 ## Development
 
@@ -250,8 +242,6 @@ go build -o bin/dish-catalogue ./services/dish-catalogue
 go build -o bin/recommendations ./services/recommendations
 ```
 
-----
-
 ## Testing
 
 The project follows Go testing best practices with three test layers:
@@ -294,8 +284,6 @@ make test-coverage
 open coverage.html
 ```
 
-----
-
 ## Monitoring
 
 ### Structured Logging
@@ -329,8 +317,6 @@ Set via `LOG_LEVEL` environment variable.
   LOG_LEVEL=debug make up
 ```
 
-----
-
 ## Contributing
 
 ### Code Standards
@@ -363,8 +349,6 @@ make test-unit
 # Full integration testing
 make test-integration
 ```
-
-----
 
 ## Makefile Commands
 
@@ -403,8 +387,6 @@ make test-integration
 | Dish Catalogue | 8002 | Recipe management |
 | Recommendations | 8003 | AI recommendations |
 | PostgreSQL | 5432 | Database |
-
-----
 
 ## Examples
 
@@ -494,8 +476,6 @@ Expected Result: Status 400 Bad Request:
   "message": "dish not found"
 }
 ```
-
-----
 
 ## License
 
