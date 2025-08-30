@@ -19,7 +19,7 @@ TBD
 ### Installation
 
 ```bash
-  # Clone the repository
+# Clone the repository
 git clone https://github.com/hannarijk/meal-prep.git
 cd meal-prep
 
@@ -35,7 +35,7 @@ go run ./services/recommendations &
 ### Verify Installation
 
 ```bash
-  # Check all services are healthy
+# Check all services are healthy
 curl http://localhost:8001/health  # Auth Service
 curl http://localhost:8002/health  # Dish Catalogue  
 curl http://localhost:8003/health  # Recommendations
@@ -56,7 +56,7 @@ curl http://localhost:8003/health  # Recommendations
 #### Registration
 
 ```bash
-  curl -X POST http://localhost:8001/register \
+curl -X POST http://localhost:8001/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -92,7 +92,7 @@ curl http://localhost:8003/health  # Recommendations
 #### Create Dish (Protected)
 
 ```bash
-  curl -X POST http://localhost:8002/dishes \
+curl -X POST http://localhost:8002/dishes \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
@@ -116,7 +116,7 @@ curl http://localhost:8003/health  # Recommendations
 #### Get Recommendations
 
 ```bash
-  # Get hybrid recommendations (default)
+# Get hybrid recommendations (default)
 curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   "http://localhost:8003/recommendations?limit=5"
 
@@ -132,7 +132,7 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
 #### Set Food Preferences
 
 ```bash
-  curl -X PUT http://localhost:8003/preferences \
+curl -X PUT http://localhost:8003/preferences \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
@@ -143,7 +143,7 @@ curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
 #### Log Cooking Activity
 
 ```bash
-  curl -X POST http://localhost:8003/cooking \
+curl -X POST http://localhost:8003/cooking \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
@@ -196,7 +196,7 @@ meal-prep/
 ### Local Development
 
 ```bash
-  # Start dependencies only
+# Start dependencies only
 docker compose up postgres -d
 
 # Run services individually for development
@@ -233,7 +233,7 @@ LOG_FORMAT=json
 ### Building
 
 ```bash
-  # Build all services
+# Build all services
 make build
 
 # Build specific service
@@ -248,7 +248,7 @@ The project follows Go testing best practices with three test layers:
 
 ### Unit Tests (Business Logic)
 ```bash
-  # Run all unit tests
+# Run all unit tests
 make test-unit
 
 # Test specific service
@@ -260,7 +260,7 @@ make test-coverage
 
 ### Integration Tests (Real Database)
 ```bash
-  # Run integration tests with testcontainers
+# Run integration tests with testcontainers
 make test-integration
 
 # Skip integration tests (for CI speed)
@@ -269,7 +269,7 @@ go test ./... -short
 
 ### End-to-End Tests (Complete Workflows)
 ```bash
-  # Run full API workflow tests
+# Run full API workflow tests
 make test-e2e
 
 # Run all test types
@@ -279,7 +279,7 @@ make test-all
 ### Test Coverage
 
 ```bash
-  # Generate coverage report
+# Generate coverage report
 make test-coverage
 open coverage.html
 ```
@@ -340,7 +340,7 @@ Set via `LOG_LEVEL` environment variable.
 ### Running Tests
 
 ```bash
-  # Before committing - run all tests
+# Before committing - run all tests
 make test-all
 
 # Quick validation
@@ -393,7 +393,7 @@ make test-integration
 ### Complete User Journey
 
 ```bash
-  # 1. Register new user
+# 1. Register new user
 RESPONSE=$(curl -s -X POST http://localhost:8001/register \
   -H "Content-Type: application/json" \
   -d '{"email":"chef@example.com","password":"mycookingpassword"}')
@@ -428,7 +428,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 ### Creating Custom Dishes
 
 ```bash
-  # Create breakfast dish
+# Create breakfast dish
 curl -X POST http://localhost:8002/dishes \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
@@ -441,12 +441,12 @@ curl -X POST http://localhost:8002/dishes \
 
 ### Error Testing
 ```bash
-  # Test without authentication
+# Test without authentication
 curl http://localhost:8003/recommendations
 ````
 
 ```bash
-  # Test invalid algorithm
+# Test invalid algorithm
 curl -H "Authorization: Bearer $TOKEN" \
   "http://localhost:8003/recommendations?algorithm=invalid"
 ````
