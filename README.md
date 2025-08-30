@@ -30,6 +30,14 @@ make up
 go run ./services/auth &
 go run ./services/dish-catalogue &
 go run ./services/recommendations &
+
+# Stop with Docker
+
+# Option 1: Stop all services
+make down
+
+# Option 2: Stop all services and clean up containers and volumes
+make clean
 ```
 
 ### Verify Installation
