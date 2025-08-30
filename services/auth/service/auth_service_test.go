@@ -1,10 +1,11 @@
 package service
 
 import (
-	"testing"
-
+	"errors"
 	"meal-prep/services/auth/service/mocks"
 	"meal-prep/shared/models"
+	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -19,7 +20,7 @@ func TestAuthService_Register(t *testing.T) {
 		name          string
 		email         string
 		password      string
-		setupMocks    func(*mocks.UserRepository)
+		setupMocks    func(*mocks.MockUserRepository)
 		expectedError error
 		expectSuccess bool
 	}{
@@ -27,12 +28,14 @@ func TestAuthService_Register(t *testing.T) {
 			name:     "successful_registration",
 			email:    "test@example.com",
 			password: "password123",
-			setupMocks: func(mockRepo *mocks.UserRepository) {
+			setupMocks: func(mockRepo *mocks.MockUserRepository) {
 				mockRepo.On("EmailExists", "test@example.com").Return(false, nil)
 				mockRepo.On("Create", "test@example.com", mock.AnythingOfType("string")).Return(
 					&models.User{
-						ID:    1,
-						Email: "test@example.com",
+						ID:        1,
+						Email:     "test@example.com",
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
 					}, nil)
 			},
 			expectedError: nil,
@@ -42,7 +45,7 @@ func TestAuthService_Register(t *testing.T) {
 			name:     "weak_password",
 			email:    "test@example.com",
 			password: "123",
-			setupMocks: func(mockRepo *mocks.UserRepository) {
+			setupMocks: func(mockRepo *mocks.MockUserRepository) {
 				// No mock setup needed - validation happens before repo call
 			},
 			expectedError: ErrWeakPassword,
@@ -52,10 +55,32 @@ func TestAuthService_Register(t *testing.T) {
 			name:     "user_already_exists",
 			email:    "existing@example.com",
 			password: "password123",
-			setupMocks: func(mockRepo *mocks.UserRepository) {
+			setupMocks: func(mockRepo *mocks.MockUserRepository) {
 				mockRepo.On("EmailExists", "existing@example.com").Return(true, nil)
 			},
 			expectedError: ErrUserExists,
+			expectSuccess: false,
+		},
+		{
+			name:     "database_error_during_email_check",
+			email:    "test@example.com",
+			password: "validpassword123",
+			setupMocks: func(mockRepo *mocks.MockUserRepository) {
+				mockRepo.On("EmailExists", "test@example.com").Return(false, errors.New("database connection failed"))
+			},
+			expectedError: errors.New("database connection failed"),
+			expectSuccess: false,
+		},
+		{
+			name:     "database_error_during_user_creation",
+			email:    "test@example.com",
+			password: "validpassword123",
+			setupMocks: func(mockRepo *mocks.MockUserRepository) {
+				mockRepo.On("EmailExists", "test@example.com").Return(false, nil)
+				mockRepo.On("Create", "test@example.com", mock.AnythingOfType("string")).Return(
+					(*models.User)(nil), errors.New("insert failed"))
+			},
+			expectedError: errors.New("insert failed"),
 			expectSuccess: false,
 		},
 	}
@@ -63,7 +88,7 @@ func TestAuthService_Register(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Arrange
-			mockRepo := new(mocks.UserRepository)
+			mockRepo := new(mocks.MockUserRepository)
 			tt.setupMocks(mockRepo)
 			service := NewAuthService(mockRepo)
 
@@ -100,7 +125,7 @@ func TestAuthService_Login(t *testing.T) {
 		name          string
 		email         string
 		password      string
-		setupMocks    func(*mocks.UserRepository)
+		setupMocks    func(*mocks.MockUserRepository)
 		expectedError error
 		expectSuccess bool
 	}{
@@ -108,9 +133,14 @@ func TestAuthService_Login(t *testing.T) {
 			name:     "successful_login",
 			email:    "test@example.com",
 			password: testPassword,
-			setupMocks: func(mockRepo *mocks.UserRepository) {
+			setupMocks: func(mockRepo *mocks.MockUserRepository) {
 				mockRepo.On("GetByEmail", "test@example.com").Return(
-					&models.User{ID: 1, Email: "test@example.com"},
+					&models.User{
+						ID:        1,
+						Email:     "test@example.com",
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
 					string(hashedPassword),
 					nil)
 			},
@@ -121,7 +151,7 @@ func TestAuthService_Login(t *testing.T) {
 			name:     "invalid_credentials_wrong_password",
 			email:    "test@example.com",
 			password: "wrongpassword",
-			setupMocks: func(mockRepo *mocks.UserRepository) {
+			setupMocks: func(mockRepo *mocks.MockUserRepository) {
 				mockRepo.On("GetByEmail", "test@example.com").Return(
 					&models.User{ID: 1, Email: "test@example.com"},
 					string(hashedPassword),
@@ -134,7 +164,7 @@ func TestAuthService_Login(t *testing.T) {
 			name:     "user_not_found",
 			email:    "nonexistent@example.com",
 			password: testPassword,
-			setupMocks: func(mockRepo *mocks.UserRepository) {
+			setupMocks: func(mockRepo *mocks.MockUserRepository) {
 				mockRepo.On("GetByEmail", "nonexistent@example.com").Return(
 					(*models.User)(nil), "", ErrInvalidCredentials)
 			},
@@ -146,7 +176,7 @@ func TestAuthService_Login(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Arrange
-			mockRepo := new(mocks.UserRepository)
+			mockRepo := new(mocks.MockUserRepository)
 			tt.setupMocks(mockRepo)
 			service := NewAuthService(mockRepo)
 
@@ -191,7 +221,7 @@ func TestAuthService_validateInput(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockRepo := new(mocks.UserRepository)
+			mockRepo := new(mocks.MockUserRepository)
 			if tt.wantError == nil && tt.password != "" {
 				mockRepo.On("EmailExists", tt.email).Return(false, nil)
 				mockRepo.On("Create", tt.email, mock.AnythingOfType("string")).Return(
