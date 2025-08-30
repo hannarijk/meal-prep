@@ -1,12 +1,54 @@
 # The Meal-Prep Project
 
-A production-ready microservices system for weekly meal planning and recipe recommendations.
+[![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://golang.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker)](https://www.docker.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791?style=flat&logo=postgresql)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+A production-ready microservices system for weekly meal planning and recipe recommendations.
 
 ## Architecture overview
 
-TBD
+```mermaid
+graph TB
+    subgraph "Client Applications"
+        WEB[Web App]
+        MOBILE[Mobile App]
+    end
 
+    subgraph "API Gateway / Load Balancer"
+        LB[Load Balancer]
+    end
+
+    subgraph "Microservices"
+        AUTH[Auth Service<br/>:8001]
+        DISHES[Dish Catalogue<br/>:8002] 
+        REC[Recommendations<br/>:8003]
+    end
+
+    subgraph "Data Layer"
+        DB[(PostgreSQL<br/>Database)]
+    end
+
+    WEB --> LB
+    MOBILE --> LB
+    LB --> AUTH
+    LB --> DISHES
+    LB --> REC
+    
+    AUTH --> DB
+    DISHES --> DB
+    REC --> DB
+
+    REC -.->|JWT Validation| AUTH
+    DISHES -.->|JWT Validation| AUTH
+```
+
+### Service Communication
+
+- **Authentication Flow**: JWT tokens issued by Auth service, validated by other services
+- **Data Independence**: Each service manages its own database schema
+- **Loose Coupling**: Services communicate via REST APIs with standardized error responses
 
 ## Quick Start
 
@@ -290,6 +332,12 @@ make test-all
 # Generate coverage report
 make test-coverage
 open coverage.html
+```
+
+## Deployment
+```bash
+# Production deployment
+docker compose -f docker-compose.yml up -d
 ```
 
 ## Monitoring
