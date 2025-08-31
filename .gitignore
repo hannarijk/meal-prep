@@ -1,6 +1,5 @@
 .env
 logs/*.log
-.exe
 
 # Editor / IDE files
 .idea/
