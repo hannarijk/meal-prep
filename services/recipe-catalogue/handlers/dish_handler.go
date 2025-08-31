@@ -5,54 +5,54 @@ import (
 	"net/http"
 	"strconv"
 
-	"meal-prep/services/dish-catalogue/service"
+	"meal-prep/services/recipe-catalogue/service"
 	"meal-prep/shared/middleware"
 	"meal-prep/shared/models"
 
 	"github.com/gorilla/mux"
 )
 
-type DishHandler struct {
-	dishService service.DishService
+type RecipeHandler struct {
+	recipeService service.RecipeService
 }
 
-func NewDishHandler(dishService service.DishService) *DishHandler {
-	return &DishHandler{dishService: dishService}
+func NewRecipeHandler(recipeService service.RecipeService) *RecipeHandler {
+	return &RecipeHandler{recipeService: recipeService}
 }
 
-func (h *DishHandler) GetAllDishes(w http.ResponseWriter, r *http.Request) {
-	dishes, err := h.dishService.GetAllDishes()
+func (h *RecipeHandler) GetAllRecipes(w http.ResponseWriter, r *http.Request) {
+	recipes, err := h.recipeService.GetAllRecipes()
 	if err != nil {
-		writeErrorResponse(w, "Failed to fetch dishes", http.StatusInternalServerError)
+		writeErrorResponse(w, "Failed to fetch recipes", http.StatusInternalServerError)
 		return
 	}
 
-	writeSuccessResponse(w, dishes, http.StatusOK)
+	writeSuccessResponse(w, recipes, http.StatusOK)
 }
 
-func (h *DishHandler) GetDishByID(w http.ResponseWriter, r *http.Request) {
+func (h *RecipeHandler) GetRecipeByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid dish ID", http.StatusBadRequest)
+		writeErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
 		return
 	}
 
-	dish, err := h.dishService.GetDishByID(id)
+	recipe, err := h.recipeService.GetRecipeByID(id)
 	if err != nil {
 		switch err {
-		case service.ErrDishNotFound:
+		case service.ErrRecipeNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
 		default:
-			writeErrorResponse(w, "Failed to fetch dish", http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to fetch recipe", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, dish, http.StatusOK)
+	writeSuccessResponse(w, recipe, http.StatusOK)
 }
 
-func (h *DishHandler) GetDishesByCategory(w http.ResponseWriter, r *http.Request) {
+func (h *RecipeHandler) GetRecipesByCategory(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	categoryID, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -60,7 +60,7 @@ func (h *DishHandler) GetDishesByCategory(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	dishes, err := h.dishService.GetDishesByCategory(categoryID)
+	recipes, err := h.recipeService.GetRecipesByCategory(categoryID)
 	if err != nil {
 		switch err {
 		case service.ErrCategoryNotFound:
@@ -68,15 +68,15 @@ func (h *DishHandler) GetDishesByCategory(w http.ResponseWriter, r *http.Request
 		case service.ErrInvalidCategory:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
-			writeErrorResponse(w, "Failed to fetch dishes", http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to fetch recipes", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, dishes, http.StatusOK)
+	writeSuccessResponse(w, recipes, http.StatusOK)
 }
 
-func (h *DishHandler) CreateDish(w http.ResponseWriter, r *http.Request) {
+func (h *RecipeHandler) CreateRecipe(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
@@ -84,31 +84,31 @@ func (h *DishHandler) CreateDish(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = user // We have the authenticated user if needed for audit logs, etc.
 
-	var req models.CreateDishRequest
+	var req models.CreateRecipeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	dish, err := h.dishService.CreateDish(req)
+	recipe, err := h.recipeService.CreateRecipe(req)
 	if err != nil {
 		switch err {
-		case service.ErrDishNameRequired:
+		case service.ErrRecipeNameRequired:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case service.ErrCategoryNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case service.ErrInvalidCategory:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
-			writeErrorResponse(w, "Failed to create dish", http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to create recipe", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, dish, http.StatusCreated)
+	writeSuccessResponse(w, recipe, http.StatusCreated)
 }
 
-func (h *DishHandler) UpdateDish(w http.ResponseWriter, r *http.Request) {
+func (h *RecipeHandler) UpdateRecipe(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
@@ -119,35 +119,35 @@ func (h *DishHandler) UpdateDish(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid dish ID", http.StatusBadRequest)
+		writeErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
 		return
 	}
 
-	var req models.UpdateDishRequest
+	var req models.UpdateRecipeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	dish, err := h.dishService.UpdateDish(id, req)
+	recipe, err := h.recipeService.UpdateRecipe(id, req)
 	if err != nil {
 		switch err {
-		case service.ErrDishNotFound:
+		case service.ErrRecipeNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
 		case service.ErrCategoryNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case service.ErrInvalidCategory:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
-			writeErrorResponse(w, "Failed to update dish", http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to update recipe", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, dish, http.StatusOK)
+	writeSuccessResponse(w, recipe, http.StatusOK)
 }
 
-func (h *DishHandler) DeleteDish(w http.ResponseWriter, r *http.Request) {
+func (h *RecipeHandler) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
@@ -158,26 +158,26 @@ func (h *DishHandler) DeleteDish(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid dish ID", http.StatusBadRequest)
+		writeErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
 		return
 	}
 
-	err = h.dishService.DeleteDish(id)
+	err = h.recipeService.DeleteRecipe(id)
 	if err != nil {
 		switch err {
-		case service.ErrDishNotFound:
+		case service.ErrRecipeNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
 		default:
-			writeErrorResponse(w, "Failed to delete dish", http.StatusInternalServerError)
+			writeErrorResponse(w, "Failed to delete recipe", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, map[string]string{"message": "Dish deleted successfully"}, http.StatusOK)
+	writeSuccessResponse(w, map[string]string{"message": "Recipe deleted successfully"}, http.StatusOK)
 }
 
-func (h *DishHandler) GetAllCategories(w http.ResponseWriter, r *http.Request) {
-	categories, err := h.dishService.GetAllCategories()
+func (h *RecipeHandler) GetAllCategories(w http.ResponseWriter, r *http.Request) {
+	categories, err := h.recipeService.GetAllCategories()
 	if err != nil {
 		writeErrorResponse(w, "Failed to fetch categories", http.StatusInternalServerError)
 		return
@@ -190,7 +190,7 @@ func writeErrorResponse(w http.ResponseWriter, message string, code int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(models.ErrorResponse{
-		Error:   "dish_catalogue_error",
+		Error:   "recipe_catalogue_error",
 		Code:    code,
 		Message: message,
 	})

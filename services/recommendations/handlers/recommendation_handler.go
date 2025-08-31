@@ -117,7 +117,7 @@ func (h *RecommendationHandler) LogCooking(w http.ResponseWriter, r *http.Reques
 	err := h.recService.LogCooking(user.UserID, req)
 	if err != nil {
 		switch err {
-		case service.ErrDishNotFound:
+		case service.ErrRecipeNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case service.ErrInvalidRating:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)

@@ -11,7 +11,7 @@ import (
 
 var (
 	ErrUserNotFound      = errors.New("user not found")
-	ErrDishNotFound      = errors.New("dish not found")
+	ErrRecipeNotFound    = errors.New("recipe not found")
 	ErrInvalidAlgorithm  = errors.New("invalid recommendation algorithm")
 	ErrInvalidRating     = errors.New("rating must be between 1 and 5")
 	ErrInvalidLimit      = errors.New("limit must be between 1 and 50")
@@ -56,13 +56,13 @@ func (s *recommendationService) GetRecommendations(userID int, req models.Recomm
 	algorithm := s.validateAlgorithm(req.Algorithm)
 	limit := s.validateLimit(req.Limit)
 
-	var dishes []models.DishWithScore
+	var recipes []models.RecipeWithScore
 	var err error
 
 	// Execute appropriate algorithm
 	switch algorithm {
 	case AlgorithmPreference:
-		dishes, err = s.repo.GetDishesByPreferences(userID, limit)
+		recipes, err = s.repo.GetRecipesByPreferences(userID, limit)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return nil, ErrPreferencesNotSet
@@ -70,9 +70,9 @@ func (s *recommendationService) GetRecommendations(userID int, req models.Recomm
 			return nil, err
 		}
 	case AlgorithmTimeDecay:
-		dishes, err = s.repo.GetDishesWithTimeDecayScore(userID, limit)
+		recipes, err = s.repo.GetRecipesWithTimeDecayScore(userID, limit)
 	case AlgorithmHybrid:
-		dishes, err = s.repo.GetHybridRecommendations(userID, limit)
+		recipes, err = s.repo.GetHybridRecommendations(userID, limit)
 	default:
 		return nil, ErrInvalidAlgorithm
 	}
@@ -82,13 +82,13 @@ func (s *recommendationService) GetRecommendations(userID int, req models.Recomm
 	}
 
 	// Log recommendations for analytics (async in production)
-	go s.logRecommendations(userID, dishes, algorithm)
+	go s.logRecommendations(userID, recipes, algorithm)
 
 	return &models.RecommendationResponse{
-		Dishes:      dishes,
+		Recipes:     recipes,
 		Algorithm:   algorithm,
 		GeneratedAt: time.Now(),
-		TotalScored: len(dishes),
+		TotalScored: len(recipes),
 	}, nil
 }
 
@@ -135,18 +135,18 @@ func (s *recommendationService) LogCooking(userID int, req models.LogCookingRequ
 		return ErrUserNotFound
 	}
 
-	if req.DishID <= 0 {
-		return ErrDishNotFound
+	if req.RecipeID <= 0 {
+		return ErrRecipeNotFound
 	}
 
 	if req.Rating != nil && (*req.Rating < 1 || *req.Rating > 5) {
 		return ErrInvalidRating
 	}
 
-	err := s.repo.LogCooking(userID, req.DishID, req.Rating)
+	err := s.repo.LogCooking(userID, req.RecipeID, req.Rating)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return ErrDishNotFound
+			return ErrRecipeNotFound
 		}
 		return err
 	}
@@ -184,9 +184,9 @@ func (s *recommendationService) validateLimit(limit int) int {
 	return limit
 }
 
-func (s *recommendationService) logRecommendations(userID int, dishes []models.DishWithScore, algorithm string) {
+func (s *recommendationService) logRecommendations(userID int, recipes []models.RecipeWithScore, algorithm string) {
 	// In production, this would be in a goroutine or async queue
-	for _, dish := range dishes {
-		s.repo.LogRecommendation(userID, dish.ID, algorithm)
+	for _, recipe := range recipes {
+		s.repo.LogRecommendation(userID, recipe.ID, algorithm)
 	}
 }

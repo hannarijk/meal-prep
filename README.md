@@ -22,7 +22,7 @@ graph TB
 
     subgraph "Microservices"
         AUTH[Auth Service<br/>:8001]
-        DISHES[Dish Catalogue<br/>:8002] 
+        RECIPES[Recipe Catalogue<br/>:8002] 
         REC[Recommendations<br/>:8003]
     end
 
@@ -33,15 +33,15 @@ graph TB
     WEB --> LB
     MOBILE --> LB
     LB --> AUTH
-    LB --> DISHES
+    LB --> RECIPES
     LB --> REC
     
     AUTH --> DB
-    DISHES --> DB
+    RECIPES --> DB
     REC --> DB
 
     REC -.->|JWT Validation| AUTH
-    DISHES -.->|JWT Validation| AUTH
+    RECIPES -.->|JWT Validation| AUTH
 ```
 
 ### Service Communication
@@ -70,7 +70,7 @@ make up
 
 # Or start individual services for development
 go run ./services/auth &
-go run ./services/dish-catalogue &
+go run ./services/recipe-catalogue &
 go run ./services/recommendations &
 
 # Stop with Docker
@@ -87,7 +87,7 @@ make clean
 ```bash
 # Check all services are healthy
 curl http://localhost:8001/health  # Auth Service
-curl http://localhost:8002/health  # Dish Catalogue  
+curl http://localhost:8002/health  # Recipe Catalogue  
 curl http://localhost:8003/health  # Recommendations
 
 # Expected response: {"status": "healthy", "service": "service-name"}
@@ -126,23 +126,23 @@ curl -X POST http://localhost:8001/register \
 }
 ```
 
-### Dish Catalogue Service (Port 8002)
+### Recipe Catalogue Service (Port 8002)
 
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `/health` | GET | Health check | No |
-| `/dishes` | GET | List all dishes | No |
-| `/dishes` | POST | Create new dish | **Yes** |
-| `/dishes/{id}` | GET | Get specific dish | No |
-| `/dishes/{id}` | PUT | Update dish | **Yes** |
-| `/dishes/{id}` | DELETE | Delete dish | **Yes** |
-| `/categories` | GET | List categories | No |
-| `/categories/{id}/dishes` | GET | Dishes by category | No |
+| Endpoint | Method | Description         | Auth Required |
+|----------|--------|---------------------|---------------|
+| `/health` | GET | Health check        | No |
+| `/recipes` | GET | List all recipes    | No |
+| `/recipes` | POST | Create new recipe   | **Yes** |
+| `/recipes/{id}` | GET | Get specific recipe | No |
+| `/recipes/{id}` | PUT | Update recipe       | **Yes** |
+| `/recipes/{id}` | DELETE | Delete recipe       | **Yes** |
+| `/categories` | GET | List categories     | No |
+| `/categories/{id}/recipes` | GET | Recipes by category | No |
 
-#### Create Dish (Protected)
+#### Create Recipe (Protected)
 
 ```bash
-curl -X POST http://localhost:8002/dishes \
+curl -X POST http://localhost:8002/recipes \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
@@ -197,7 +197,7 @@ curl -X POST http://localhost:8003/cooking \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
-    "dish_id": 5,
+    "recipe_id": 5,
     "rating": 4
   }'
 ```
@@ -205,7 +205,7 @@ curl -X POST http://localhost:8003/cooking \
 ## Recommendation Algorithms
 
 ### Time Decay Algorithm
-Prioritizes dishes based on how long it's been since you last cooked them:
+Prioritizes recipes based on how long it's been since you last cooked them:
 
 - **Recently cooked** (< 7 days): Low priority (0.1)
 - **Good to revisit** (7-30 days): Medium priority (0.7)
@@ -230,7 +230,7 @@ Pure preference-based recommendations using your selected categories.
 meal-prep/
 ├── services/                 # Microservices
 │   ├── auth/                # Authentication service
-│   ├── dish-catalogue/      # Recipe management
+│   ├── recipe-catalogue/      # Recipe management
 │   └── recommendations/     # AI recommendations
 ├── shared/                  # Shared libraries
 │   ├── database/           # Database connections
@@ -251,7 +251,7 @@ docker compose up postgres -d
 
 # Run services individually for development
 go run ./services/auth
-go run ./services/dish-catalogue  
+go run ./services/recipe-catalogue  
 go run ./services/recommendations
 ```
 
@@ -272,7 +272,7 @@ JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 
 # Service Ports
 AUTH_PORT=8001
-DISH_CATALOGUE_PORT=8002
+RECIPE_CATALOGUE_PORT=8002
 RECOMMENDATIONS_PORT=8003
 
 # Logging
@@ -288,7 +288,7 @@ make build
 
 # Build specific service
 go build -o bin/auth ./services/auth
-go build -o bin/dish-catalogue ./services/dish-catalogue
+go build -o bin/recipe-catalogue ./services/recipe-catalogue
 go build -o bin/recommendations ./services/recommendations
 ```
 
@@ -437,17 +437,17 @@ make test-integration
 
 ### Service Ports
 
-| Service | Port | Description |
-|---------|------|-------------|
-| Auth | 8001 | User authentication |
-| Dish Catalogue | 8002 | Recipe management |
-| Recommendations | 8003 | AI recommendations |
-| PostgreSQL | 5432 | Database |
+| Service          | Port | Description |
+|------------------|------|-------------|
+| Auth             | 8001 | User authentication |
+| Recipe Catalogue | 8002 | Recipe management |
+| Recommendations  | 8003 | AI recommendations |
+| PostgreSQL       | 5432 | Database |
 
 ## Examples
 
 ### Complete User Journey
-
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NTY3NDA5NzEsIm5iZiI6MTc1NjY1NDU3MSwiaWF0IjoxNzU2NjU0NTcxfQ.U4brcR8gdfHXNjTehsmDLUKtEOQXws3c9df67BYfCh8
 ```bash
 # 1. Register new user
 RESPONSE=$(curl -s -X POST http://localhost:8001/register \
@@ -457,8 +457,8 @@ RESPONSE=$(curl -s -X POST http://localhost:8001/register \
 # Extract token
 TOKEN=$(echo $RESPONSE | jq -r '.token')
 
-# 2. Browse available dishes
-curl -s http://localhost:8002/dishes | jq '.[:3]'
+# 2. Browse available recipes
+curl -s http://localhost:8002/recipes | jq '.[:3]'
 
 # 3. Set food preferences
 curl -X PUT http://localhost:8003/preferences \
@@ -474,18 +474,18 @@ curl -H "Authorization: Bearer $TOKEN" \
 curl -X POST http://localhost:8003/cooking \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"dish_id": 2, "rating": 5}'
+  -d '{"recipe_id": 2, "rating": 5}'
 
 # 6. Get updated recommendations (now considers cooking history)
 curl -H "Authorization: Bearer $TOKEN" \
   "http://localhost:8003/recommendations?algorithm=time_decay&limit=5" | jq
 ```
 
-### Creating Custom Dishes
+### Creating Custom Recipes
 
 ```bash
-# Create breakfast dish
-curl -X POST http://localhost:8002/dishes \
+# Create breakfast recipe
+curl -X POST http://localhost:8002/recipes \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
@@ -509,7 +509,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 Expected Result: Success (200) with hybrid recommendations:
 ```json
 {
-  "dishes": [...],
+  "recipes": [...],
   "algorithm": "hybrid",
   "generated_at": "2025-08-28T...",
   "total_scored": 5
@@ -518,18 +518,18 @@ Expected Result: Success (200) with hybrid recommendations:
 Why: The service has a validateAlgorithm() method that defaults to "hybrid" for invalid algorithms instead of throwing an error. This is actually good UX - graceful degradation.
 
 ```bash
-# Test invalid dish ID
+# Test invalid recipe ID
 curl -X POST http://localhost:8003/cooking \
 -H "Content-Type: application/json" \
 -H "Authorization: Bearer $TOKEN" \
--d '{"dish_id": 999, "rating": 5}'
+-d '{"recipe_id": 999, "rating": 5}'
 ```
 Expected Result: Status 400 Bad Request:
 ```json
 {
   "error": "recommendations_error",
   "code": 400,
-  "message": "dish not found"
+  "message": "recipe not found"
 }
 ```
 

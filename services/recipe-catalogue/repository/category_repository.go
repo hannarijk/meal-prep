@@ -20,7 +20,7 @@ func NewCategoryRepository(db *database.DB) CategoryRepository {
 }
 
 func (r *categoryRepository) GetAll() ([]models.Category, error) {
-	query := "SELECT id, name, description, created_at FROM dish_catalogue.categories ORDER BY name"
+	query := "SELECT id, name, description, created_at FROM recipe_catalogue.categories ORDER BY name"
 	rows, err := r.db.Query(query)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func (r *categoryRepository) GetAll() ([]models.Category, error) {
 func (r *categoryRepository) GetByID(id int) (*models.Category, error) {
 	var category models.Category
 	err := r.db.QueryRow(
-		"SELECT id, name, description, created_at FROM dish_catalogue.categories WHERE id = $1",
+		"SELECT id, name, description, created_at FROM recipe_catalogue.categories WHERE id = $1",
 		id).Scan(&category.ID, &category.Name, &category.Description, &category.CreatedAt)
 
 	if err != nil {
@@ -55,7 +55,7 @@ func (r *categoryRepository) GetByID(id int) (*models.Category, error) {
 func (r *categoryRepository) Exists(id int) (bool, error) {
 	var exists bool
 	err := r.db.QueryRow(
-		"SELECT EXISTS(SELECT 1 FROM dish_catalogue.categories WHERE id = $1)",
+		"SELECT EXISTS(SELECT 1 FROM recipe_catalogue.categories WHERE id = $1)",
 		id).Scan(&exists)
 	return exists, err
 }

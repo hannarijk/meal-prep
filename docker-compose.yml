@@ -54,11 +54,11 @@ services:
       timeout: 10s
       retries: 3
 
-  dish-catalogue-service:
+  recipe-catalogue-service:
     build:
       context: .
-      dockerfile: Dockerfile.dish-catalogue
-    container_name: mealprep-dish-catalogue
+      dockerfile: Dockerfile.recipe-catalogue
+    container_name: mealprep-recipe-catalogue
     restart: unless-stopped
     environment:
       DB_HOST: postgres
@@ -66,10 +66,10 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres123
       DB_NAME: mealprep
-      DISH_CATALOGUE_PORT: 8002
+      RECIPE_CATALOGUE_PORT: 8002
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_FORMAT: ${LOG_FORMAT:-json}
-      LOG_FILE: /app/logs/dish-catalogue.log
+      LOG_FILE: /app/logs/recipe-catalogue.log
     volumes:
       - ./logs:/app/logs
     ports:

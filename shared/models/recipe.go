@@ -9,7 +9,7 @@ type Category struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-type Dish struct {
+type Recipe struct {
 	ID          int       `json:"id"`
 	Name        string    `json:"name"`
 	Description *string   `json:"description,omitempty"`
@@ -19,13 +19,13 @@ type Dish struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-type CreateDishRequest struct {
+type CreateRecipeRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
 	CategoryID  int    `json:"category_id"`
 }
 
-type UpdateDishRequest struct {
+type UpdateRecipeRequest struct {
 	Name        string `json:"name,omitempty"`
 	Description string `json:"description,omitempty"`
 	CategoryID  int    `json:"category_id,omitempty"`

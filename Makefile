@@ -28,8 +28,8 @@ logs:
 logs-auth:
 	docker-compose logs -f auth-service
 
-logs-dishes:
-	docker-compose logs -f dish-catalogue-service
+logs-recipes:
+	docker-compose logs -f recipe-catalogue-service
 
 logs-recommendations:
 	docker-compose logs -f recommendations-service
@@ -68,7 +68,7 @@ test-coverage:
 # Test specific service
 test-service:
 	@echo "🎯 Testing specific service..."
-	@read -p "Enter service name (auth/dish-catalogue/recommendations): " service; \
+	@read -p "Enter service name (auth/recipe-catalogue/recommendations): " service; \
 	go test ./services/$$service/... -v -race
 
 # Clean test artifacts

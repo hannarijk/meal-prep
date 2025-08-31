@@ -14,17 +14,17 @@ type RecommendationRepository interface {
 	UpdateUserPreferences(userID int, categories []int) (*models.UserPreferences, error)
 
 	// Cooking history methods
-	LogCooking(userID, dishID int, rating *int) error
+	LogCooking(userID, recipeID int, rating *int) error
 	GetUserCookingHistory(userID int, limit int) ([]models.CookingHistory, error)
 	GetLastCookedTimes(userID int) (map[int]time.Time, error)
 
 	// Recommendation queries
-	GetDishesWithTimeDecayScore(userID int, limit int) ([]models.DishWithScore, error)
-	GetDishesByPreferences(userID int, limit int) ([]models.DishWithScore, error)
-	GetHybridRecommendations(userID int, limit int) ([]models.DishWithScore, error)
+	GetRecipesWithTimeDecayScore(userID int, limit int) ([]models.RecipeWithScore, error)
+	GetRecipesByPreferences(userID int, limit int) ([]models.RecipeWithScore, error)
+	GetHybridRecommendations(userID int, limit int) ([]models.RecipeWithScore, error)
 
 	// Analytics
-	LogRecommendation(userID, dishID int, algorithm string) error
+	LogRecommendation(userID, recipeID int, algorithm string) error
 }
 
 type recommendationRepository struct {
@@ -127,36 +127,36 @@ func (r *recommendationRepository) UpdateUserPreferences(userID int, categories 
 	return &prefs, nil
 }
 
-func (r *recommendationRepository) LogCooking(userID, dishID int, rating *int) error {
-	log.Printf("INFO: Logging cooking for user %d, dish %d, rating %v", userID, dishID, rating)
+func (r *recommendationRepository) LogCooking(userID, recipeID int, rating *int) error {
+	log.Printf("INFO: Logging cooking for user %d, recipe %d, rating %v", userID, recipeID, rating)
 
-	// First, check if the dish exists
+	// First, check if the recipe exists
 	var exists bool
 	err := r.db.QueryRow(
-		"SELECT EXISTS(SELECT 1 FROM dish_catalogue.dishes WHERE id = $1)",
-		dishID).Scan(&exists)
+		"SELECT EXISTS(SELECT 1 FROM recipe_catalogue.recipes WHERE id = $1)",
+		recipeID).Scan(&exists)
 
 	if err != nil {
-		log.Printf("ERROR: Failed to check dish existence for dish %d: %v", dishID, err)
+		log.Printf("ERROR: Failed to check recipe existence for recipe %d: %v", recipeID, err)
 		return err
 	}
 
 	if !exists {
-		log.Printf("ERROR: Dish %d does not exist", dishID)
+		log.Printf("ERROR: Recipe %d does not exist", recipeID)
 		return sql.ErrNoRows // This will be caught by the service layer
 	}
 
 	_, err = r.db.Exec(`
-		INSERT INTO recommendations.cooking_history (user_id, dish_id, cooked_at, rating)
+		INSERT INTO recommendations.cooking_history (user_id, recipe_id, cooked_at, rating)
 		VALUES ($1, $2, CURRENT_TIMESTAMP, $3)`,
-		userID, dishID, rating)
+		userID, recipeID, rating)
 
 	if err != nil {
-		log.Printf("ERROR: Failed to log cooking for user %d, dish %d: %v", userID, dishID, err)
+		log.Printf("ERROR: Failed to log cooking for user %d, recipe %d: %v", userID, recipeID, err)
 		return err
 	}
 
-	log.Printf("INFO: Successfully logged cooking for user %d, dish %d", userID, dishID)
+	log.Printf("INFO: Successfully logged cooking for user %d, recipe %d", userID, recipeID)
 	return nil
 }
 
@@ -164,7 +164,7 @@ func (r *recommendationRepository) GetUserCookingHistory(userID int, limit int) 
 	log.Printf("INFO: Getting cooking history for user %d, limit %d", userID, limit)
 
 	query := `
-		SELECT id, user_id, dish_id, cooked_at, rating
+		SELECT id, user_id, recipe_id, cooked_at, rating
 		FROM recommendations.cooking_history 
 		WHERE user_id = $1
 		ORDER BY cooked_at DESC
@@ -180,7 +180,7 @@ func (r *recommendationRepository) GetUserCookingHistory(userID int, limit int) 
 	var history []models.CookingHistory
 	for rows.Next() {
 		var h models.CookingHistory
-		err := rows.Scan(&h.ID, &h.UserID, &h.DishID, &h.CookedAt, &h.Rating)
+		err := rows.Scan(&h.ID, &h.UserID, &h.RecipeID, &h.CookedAt, &h.Rating)
 		if err != nil {
 			log.Printf("ERROR: Failed to scan cooking history row for user %d: %v", userID, err)
 			return nil, err
@@ -196,10 +196,10 @@ func (r *recommendationRepository) GetLastCookedTimes(userID int) (map[int]time.
 	log.Printf("INFO: Getting last cooked times for user %d", userID)
 
 	query := `
-		SELECT DISTINCT ON (dish_id) dish_id, cooked_at
+		SELECT DISTINCT ON (recipe_id) recipe_id, cooked_at
 		FROM recommendations.cooking_history 
 		WHERE user_id = $1
-		ORDER BY dish_id, cooked_at DESC`
+		ORDER BY recipe_id, cooked_at DESC`
 
 	rows, err := r.db.Query(query, userID)
 	if err != nil {
@@ -210,33 +210,33 @@ func (r *recommendationRepository) GetLastCookedTimes(userID int) (map[int]time.
 
 	lastCooked := make(map[int]time.Time)
 	for rows.Next() {
-		var dishID int
+		var recipeID int
 		var cookedAt time.Time
-		if err := rows.Scan(&dishID, &cookedAt); err != nil {
+		if err := rows.Scan(&recipeID, &cookedAt); err != nil {
 			log.Printf("ERROR: Failed to scan last cooked time for user %d: %v", userID, err)
 			return nil, err
 		}
-		lastCooked[dishID] = cookedAt
+		lastCooked[recipeID] = cookedAt
 	}
 
-	log.Printf("INFO: Retrieved last cooked times for %d dishes for user %d", len(lastCooked), userID)
+	log.Printf("INFO: Retrieved last cooked times for %d recipes for user %d", len(lastCooked), userID)
 	return lastCooked, nil
 }
 
-func (r *recommendationRepository) GetDishesWithTimeDecayScore(userID int, limit int) ([]models.DishWithScore, error) {
+func (r *recommendationRepository) GetRecipesWithTimeDecayScore(userID int, limit int) ([]models.RecipeWithScore, error) {
 	log.Printf("INFO: Getting time decay recommendations for user %d, limit %d", userID, limit)
 
 	query := `
-		WITH dish_last_cooked AS (
-			SELECT DISTINCT ON (ch.dish_id) 
-				ch.dish_id,
+		WITH recipe_last_cooked AS (
+			SELECT DISTINCT ON (ch.recipe_id) 
+				ch.recipe_id,
 				ch.cooked_at,
 				EXTRACT(days FROM CURRENT_TIMESTAMP - ch.cooked_at) as days_since
 			FROM recommendations.cooking_history ch
 			WHERE ch.user_id = $1
-			ORDER BY ch.dish_id, ch.cooked_at DESC
+			ORDER BY ch.recipe_id, ch.cooked_at DESC
 		),
-		scored_dishes AS (
+		scored_recipes AS (
 			SELECT 
 				d.id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 				c.id as cat_id, c.name as cat_name, c.description as cat_desc,
@@ -249,14 +249,14 @@ func (r *recommendationRepository) GetDishesWithTimeDecayScore(userID int, limit
 					WHEN dlc.days_since < 90 THEN 1.0
 					ELSE 1.2
 				END as time_score
-			FROM dish_catalogue.dishes d
-			LEFT JOIN dish_catalogue.categories c ON d.category_id = c.id
-			LEFT JOIN dish_last_cooked dlc ON d.id = dlc.dish_id
+			FROM recipe_catalogue.recipes d
+			LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
+			LEFT JOIN recipe_last_cooked dlc ON d.id = dlc.recipe_id
 		)
 		SELECT 
 			id, name, description, category_id, created_at, updated_at,
 			cat_id, cat_name, cat_desc, cooked_at, days_since, time_score
-		FROM scored_dishes
+		FROM scored_recipes
 		ORDER BY time_score DESC, RANDOM()
 		LIMIT $2`
 
@@ -267,17 +267,17 @@ func (r *recommendationRepository) GetDishesWithTimeDecayScore(userID int, limit
 	}
 	defer rows.Close()
 
-	dishes, err := r.scanScoredDishes(rows, "time_decay")
+	recipes, err := r.scanScoredRecipes(rows, "time_decay")
 	if err != nil {
-		log.Printf("ERROR: Failed to scan time decay dishes for user %d: %v", userID, err)
+		log.Printf("ERROR: Failed to scan time decay recipes for user %d: %v", userID, err)
 		return nil, err
 	}
 
-	log.Printf("INFO: Generated %d time decay recommendations for user %d", len(dishes), userID)
-	return dishes, nil
+	log.Printf("INFO: Generated %d time decay recommendations for user %d", len(recipes), userID)
+	return recipes, nil
 }
 
-func (r *recommendationRepository) GetDishesByPreferences(userID int, limit int) ([]models.DishWithScore, error) {
+func (r *recommendationRepository) GetRecipesByPreferences(userID int, limit int) ([]models.RecipeWithScore, error) {
 	log.Printf("INFO: Getting preference-based recommendations for user %d, limit %d", userID, limit)
 
 	query := `
@@ -287,8 +287,8 @@ func (r *recommendationRepository) GetDishesByPreferences(userID int, limit int)
 			NULL::timestamp as cooked_at,
 			NULL::numeric as days_since,
 			1.0 as preference_score
-		FROM dish_catalogue.dishes d
-		LEFT JOIN dish_catalogue.categories c ON d.category_id = c.id
+		FROM recipe_catalogue.recipes d
+		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
 		WHERE d.category_id IN (
 			SELECT unnest(preferred_categories) 
 			FROM recommendations.user_preferences 
@@ -304,23 +304,23 @@ func (r *recommendationRepository) GetDishesByPreferences(userID int, limit int)
 	}
 	defer rows.Close()
 
-	dishes, err := r.scanScoredDishes(rows, "preference")
+	recipes, err := r.scanScoredRecipes(rows, "preference")
 	if err != nil {
-		log.Printf("ERROR: Failed to scan preference dishes for user %d: %v", userID, err)
+		log.Printf("ERROR: Failed to scan preference recipes for user %d: %v", userID, err)
 		return nil, err
 	}
 
-	// If no dishes found (user has no preferences set), get random dishes instead
-	if len(dishes) == 0 {
-		log.Printf("INFO: No preference-based dishes found for user %d, falling back to random dishes", userID)
-		return r.getRandomDishes(limit)
+	// If no recipes found (user has no preferences set), get random recipes instead
+	if len(recipes) == 0 {
+		log.Printf("INFO: No preference-based recipes found for user %d, falling back to random recipes", userID)
+		return r.getRandomRecipes(limit)
 	}
 
-	log.Printf("INFO: Generated %d preference-based recommendations for user %d", len(dishes), userID)
-	return dishes, nil
+	log.Printf("INFO: Generated %d preference-based recommendations for user %d", len(recipes), userID)
+	return recipes, nil
 }
 
-func (r *recommendationRepository) GetHybridRecommendations(userID int, limit int) ([]models.DishWithScore, error) {
+func (r *recommendationRepository) GetHybridRecommendations(userID int, limit int) ([]models.RecipeWithScore, error) {
 	log.Printf("INFO: Getting hybrid recommendations for user %d, limit %d", userID, limit)
 
 	query := `
@@ -329,16 +329,16 @@ func (r *recommendationRepository) GetHybridRecommendations(userID int, limit in
 			FROM recommendations.user_preferences 
 			WHERE user_id = $1
 		),
-		dish_last_cooked AS (
-			SELECT DISTINCT ON (ch.dish_id) 
-				ch.dish_id,
+		recipe_last_cooked AS (
+			SELECT DISTINCT ON (ch.recipe_id) 
+				ch.recipe_id,
 				ch.cooked_at,
 				EXTRACT(days FROM CURRENT_TIMESTAMP - ch.cooked_at) as days_since
 			FROM recommendations.cooking_history ch
 			WHERE ch.user_id = $1
-			ORDER BY ch.dish_id, ch.cooked_at DESC
+			ORDER BY ch.recipe_id, ch.cooked_at DESC
 		),
-		scored_dishes AS (
+		scored_recipes AS (
 			SELECT 
 				d.id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 				c.id as cat_id, c.name as cat_name, c.description as cat_desc,
@@ -357,15 +357,15 @@ func (r *recommendationRepository) GetHybridRecommendations(userID int, limit in
 					WHEN NOT EXISTS(SELECT 1 FROM user_pref_categories) THEN 0.7
 					ELSE 0.3
 				END as preference_score
-			FROM dish_catalogue.dishes d
-			LEFT JOIN dish_catalogue.categories c ON d.category_id = c.id
-			LEFT JOIN dish_last_cooked dlc ON d.id = dlc.dish_id
+			FROM recipe_catalogue.recipes d
+			LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
+			LEFT JOIN recipe_last_cooked dlc ON d.id = dlc.recipe_id
 		)
 		SELECT 
 			id, name, description, category_id, created_at, updated_at,
 			cat_id, cat_name, cat_desc, cooked_at, days_since,
 			(time_score * 0.6 + preference_score * 0.4) as final_score
-		FROM scored_dishes
+		FROM scored_recipes
 		ORDER BY final_score DESC, RANDOM()
 		LIMIT $2`
 
@@ -376,24 +376,24 @@ func (r *recommendationRepository) GetHybridRecommendations(userID int, limit in
 	}
 	defer rows.Close()
 
-	dishes, err := r.scanScoredDishes(rows, "hybrid")
+	recipes, err := r.scanScoredRecipes(rows, "hybrid")
 	if err != nil {
-		log.Printf("ERROR: Failed to scan hybrid dishes for user %d: %v", userID, err)
+		log.Printf("ERROR: Failed to scan hybrid recipes for user %d: %v", userID, err)
 		return nil, err
 	}
 
-	log.Printf("INFO: Generated %d hybrid recommendations for user %d", len(dishes), userID)
-	return dishes, nil
+	log.Printf("INFO: Generated %d hybrid recommendations for user %d", len(recipes), userID)
+	return recipes, nil
 }
 
-func (r *recommendationRepository) LogRecommendation(userID, dishID int, algorithm string) error {
+func (r *recommendationRepository) LogRecommendation(userID, recipeID int, algorithm string) error {
 	_, err := r.db.Exec(`
-		INSERT INTO recommendations.recommendation_history (user_id, dish_id, recommended_at, algorithm_used)
+		INSERT INTO recommendations.recommendation_history (user_id, recipe_id, recommended_at, algorithm_used)
 		VALUES ($1, $2, CURRENT_TIMESTAMP, $3)`,
-		userID, dishID, algorithm)
+		userID, recipeID, algorithm)
 
 	if err != nil {
-		log.Printf("ERROR: Failed to log recommendation for user %d, dish %d, algorithm %s: %v", userID, dishID, algorithm, err)
+		log.Printf("ERROR: Failed to log recommendation for user %d, recipe %d, algorithm %s: %v", userID, recipeID, algorithm, err)
 		return err
 	}
 
@@ -401,9 +401,9 @@ func (r *recommendationRepository) LogRecommendation(userID, dishID int, algorit
 	return nil
 }
 
-// Helper method for random dishes (fallback when no preferences/history)
-func (r *recommendationRepository) getRandomDishes(limit int) ([]models.DishWithScore, error) {
-	log.Printf("INFO: Getting random dishes, limit %d", limit)
+// Helper method for random recipes (fallback when no preferences/history)
+func (r *recommendationRepository) getRandomRecipes(limit int) ([]models.RecipeWithScore, error) {
+	log.Printf("INFO: Getting random recipes, limit %d", limit)
 
 	query := `
 		SELECT 
@@ -412,33 +412,33 @@ func (r *recommendationRepository) getRandomDishes(limit int) ([]models.DishWith
 			NULL::timestamp as cooked_at,
 			NULL::numeric as days_since,
 			0.5 as random_score
-		FROM dish_catalogue.dishes d
-		LEFT JOIN dish_catalogue.categories c ON d.category_id = c.id
+		FROM recipe_catalogue.recipes d
+		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
 		ORDER BY RANDOM()
 		LIMIT $1`
 
 	rows, err := r.db.Query(query, limit)
 	if err != nil {
-		log.Printf("ERROR: Failed to query random dishes: %v", err)
+		log.Printf("ERROR: Failed to query random recipes: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
 
-	dishes, err := r.scanScoredDishes(rows, "random")
+	recipes, err := r.scanScoredRecipes(rows, "random")
 	if err != nil {
-		log.Printf("ERROR: Failed to scan random dishes: %v", err)
+		log.Printf("ERROR: Failed to scan random recipes: %v", err)
 		return nil, err
 	}
 
-	log.Printf("INFO: Generated %d random recommendations", len(dishes))
-	return dishes, nil
+	log.Printf("INFO: Generated %d random recommendations", len(recipes))
+	return recipes, nil
 }
 
-func (r *recommendationRepository) scanScoredDishes(rows *sql.Rows, algorithm string) ([]models.DishWithScore, error) {
-	var dishes []models.DishWithScore
+func (r *recommendationRepository) scanScoredRecipes(rows *sql.Rows, algorithm string) ([]models.RecipeWithScore, error) {
+	var recipes []models.RecipeWithScore
 
 	for rows.Next() {
-		var dws models.DishWithScore
+		var dws models.RecipeWithScore
 		var category models.Category
 		var categoryID sql.NullInt64
 		var categoryName sql.NullString
@@ -454,7 +454,7 @@ func (r *recommendationRepository) scanScoredDishes(rows *sql.Rows, algorithm st
 			&cookedAt, &daysSince, &score,
 		)
 		if err != nil {
-			log.Printf("ERROR: Failed to scan scored dish row for %s: %v", algorithm, err)
+			log.Printf("ERROR: Failed to scan scored recipe row for %s: %v", algorithm, err)
 			return nil, err
 		}
 
@@ -467,7 +467,7 @@ func (r *recommendationRepository) scanScoredDishes(rows *sql.Rows, algorithm st
 			}
 			dws.Category = &category
 		} else {
-			// Create a default category for dishes without categories
+			// Create a default category for recipes without categories
 			category.ID = 0
 			category.Name = "Uncategorized"
 			dws.Category = &category
@@ -486,18 +486,18 @@ func (r *recommendationRepository) scanScoredDishes(rows *sql.Rows, algorithm st
 		// Generate reason based on algorithm and data
 		dws.Reason = r.generateReason(algorithm, dws.DaysSinceCooked, dws.Category.Name)
 
-		dishes = append(dishes, dws)
+		recipes = append(recipes, dws)
 	}
 
-	log.Printf("INFO: Successfully scanned %d dishes for %s algorithm", len(dishes), algorithm)
-	return dishes, nil
+	log.Printf("INFO: Successfully scanned %d recipes for %s algorithm", len(recipes), algorithm)
+	return recipes, nil
 }
 
 func (r *recommendationRepository) generateReason(algorithm string, daysSince *int, categoryName string) string {
 	switch algorithm {
 	case "time_decay":
 		if daysSince == nil {
-			return "New dish to try"
+			return "New recipe to try"
 		} else if *daysSince < 7 {
 			return "Recently enjoyed"
 		} else if *daysSince < 30 {

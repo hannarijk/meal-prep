@@ -9,7 +9,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o dish-catalogue ./services/dish-catalogue
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o recipe-catalogue ./services/recipe-catalogue
 
 FROM alpine:latest
 
@@ -17,7 +17,7 @@ RUN apk --no-cache add ca-certificates tzdata
 
 WORKDIR /root/
 
-COPY --from=builder /app/dish-catalogue .
+COPY --from=builder /app/recipe-catalogue .
 COPY --from=builder /app/.env* ./
 
 EXPOSE 8002
@@ -25,4 +25,4 @@ EXPOSE 8002
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8002/health || exit 1
 
-CMD ["./dish-catalogue"]
+CMD ["./recipe-catalogue"]

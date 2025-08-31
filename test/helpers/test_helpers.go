@@ -85,8 +85,8 @@ func (td *TestDatabase) Cleanup(t *testing.T) {
 func (td *TestDatabase) CleanupTestData(t *testing.T) {
 	queries := []string{
 		"DELETE FROM auth.users",
-		"DELETE FROM dish_catalogue.dishes",
-		"DELETE FROM dish_catalogue.categories",
+		"DELETE FROM recipe_catalogue.recipes",
+		"DELETE FROM recipe_catalogue.categories",
 		"DELETE FROM recommendations.cooking_history",
 		"DELETE FROM recommendations.user_preferences",
 		"DELETE FROM recommendations.recommendation_history",
@@ -104,7 +104,7 @@ func initializeTestSchema(db *database.DB) error {
 	schemaSQL := `
 		-- Create schemas
 		CREATE SCHEMA IF NOT EXISTS auth;
-		CREATE SCHEMA IF NOT EXISTS dish_catalogue;
+		CREATE SCHEMA IF NOT EXISTS recipe_catalogue;
 		CREATE SCHEMA IF NOT EXISTS recommendations;
 
 		-- Auth tables
@@ -116,19 +116,19 @@ func initializeTestSchema(db *database.DB) error {
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
 
-		-- Dish catalogue tables
-		CREATE TABLE IF NOT EXISTS dish_catalogue.categories (
+		-- Recipe catalogue tables
+		CREATE TABLE IF NOT EXISTS recipe_catalogue.categories (
 			id SERIAL PRIMARY KEY,
 			name VARCHAR(100) NOT NULL UNIQUE,
 			description TEXT,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
 
-		CREATE TABLE IF NOT EXISTS dish_catalogue.dishes (
+		CREATE TABLE IF NOT EXISTS recipe_catalogue.recipes (
 			id SERIAL PRIMARY KEY,
 			name VARCHAR(200) NOT NULL,
 			description TEXT,
-			category_id INTEGER REFERENCES dish_catalogue.categories(id),
+			category_id INTEGER REFERENCES recipe_catalogue.categories(id),
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
@@ -146,7 +146,7 @@ func initializeTestSchema(db *database.DB) error {
 		CREATE TABLE IF NOT EXISTS recommendations.cooking_history (
 			id SERIAL PRIMARY KEY,
 			user_id INTEGER NOT NULL,
-			dish_id INTEGER NOT NULL,
+			recipe_id INTEGER NOT NULL,
 			cooked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			rating INTEGER CHECK (rating BETWEEN 1 AND 5)
 		);
@@ -154,21 +154,21 @@ func initializeTestSchema(db *database.DB) error {
 		CREATE TABLE IF NOT EXISTS recommendations.recommendation_history (
 			id SERIAL PRIMARY KEY,
 			user_id INTEGER NOT NULL,
-			dish_id INTEGER NOT NULL,
+			recipe_id INTEGER NOT NULL,
 			recommended_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			clicked BOOLEAN DEFAULT FALSE,
 			algorithm_used VARCHAR(50) 
 		);
 
 		-- Insert test categories
-		INSERT INTO dish_catalogue.categories (name, description) VALUES 
+		INSERT INTO recipe_catalogue.categories (name, description) VALUES 
 		('Breakfast', 'Morning meals'),
 		('Lunch', 'Midday meals'),
 		('Dinner', 'Evening meals')
 		ON CONFLICT (name) DO NOTHING;
 
-		-- Insert test dishes
-		INSERT INTO dish_catalogue.dishes (name, description, category_id) VALUES 
+		-- Insert test recipes
+		INSERT INTO recipe_catalogue.recipes (name, description, category_id) VALUES 
 		('Scrambled Eggs', 'Classic breakfast eggs', 1),
 		('Caesar Salad', 'Fresh romaine salad', 2),
 		('Grilled Chicken', 'Juicy grilled chicken', 3)

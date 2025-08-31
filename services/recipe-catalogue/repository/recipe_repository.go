@@ -6,29 +6,29 @@ import (
 	"meal-prep/shared/models"
 )
 
-type DishRepository interface {
-	GetAll() ([]models.Dish, error)
-	GetByID(id int) (*models.Dish, error)
-	GetByCategory(categoryID int) ([]models.Dish, error)
-	Create(req models.CreateDishRequest) (*models.Dish, error)
-	Update(id int, req models.UpdateDishRequest) (*models.Dish, error)
+type RecipeRepository interface {
+	GetAll() ([]models.Recipe, error)
+	GetByID(id int) (*models.Recipe, error)
+	GetByCategory(categoryID int) ([]models.Recipe, error)
+	Create(req models.CreateRecipeRequest) (*models.Recipe, error)
+	Update(id int, req models.UpdateRecipeRequest) (*models.Recipe, error)
 	Delete(id int) error
 }
 
-type dishRepository struct {
+type recipeRepository struct {
 	db *database.DB
 }
 
-func NewDishRepository(db *database.DB) DishRepository {
-	return &dishRepository{db: db}
+func NewRecipeRepository(db *database.DB) RecipeRepository {
+	return &recipeRepository{db: db}
 }
 
-func (r *dishRepository) GetAll() ([]models.Dish, error) {
+func (r *recipeRepository) GetAll() ([]models.Recipe, error) {
 	query := `
 		SELECT d.id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 		       c.id, c.name, c.description
-		FROM dish_catalogue.dishes d
-		LEFT JOIN dish_catalogue.categories c ON d.category_id = c.id
+		FROM recipe_catalogue.recipes d
+		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
 		ORDER BY d.name`
 
 	rows, err := r.db.Query(query)
@@ -37,15 +37,15 @@ func (r *dishRepository) GetAll() ([]models.Dish, error) {
 	}
 	defer rows.Close()
 
-	var dishes []models.Dish
+	var recipes []models.Recipe
 	for rows.Next() {
-		dish := models.Dish{}
+		recipe := models.Recipe{}
 		category := models.Category{}
 		var categoryDesc sql.NullString
 
 		err := rows.Scan(
-			&dish.ID, &dish.Name, &dish.Description, &dish.CategoryID,
-			&dish.CreatedAt, &dish.UpdatedAt,
+			&recipe.ID, &recipe.Name, &recipe.Description, &recipe.CategoryID,
+			&recipe.CreatedAt, &recipe.UpdatedAt,
 			&category.ID, &category.Name, &categoryDesc,
 		)
 		if err != nil {
@@ -55,29 +55,29 @@ func (r *dishRepository) GetAll() ([]models.Dish, error) {
 		if categoryDesc.Valid {
 			category.Description = &categoryDesc.String
 		}
-		dish.Category = &category
+		recipe.Category = &category
 
-		dishes = append(dishes, dish)
+		recipes = append(recipes, recipe)
 	}
 
-	return dishes, nil
+	return recipes, nil
 }
 
-func (r *dishRepository) GetByID(id int) (*models.Dish, error) {
+func (r *recipeRepository) GetByID(id int) (*models.Recipe, error) {
 	query := `
 		SELECT d.id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 		       c.id, c.name, c.description
-		FROM dish_catalogue.dishes d
-		LEFT JOIN dish_catalogue.categories c ON d.category_id = c.id
+		FROM recipe_catalogue.recipes d
+		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
 		WHERE d.id = $1`
 
-	dish := models.Dish{}
+	recipe := models.Recipe{}
 	category := models.Category{}
 	var categoryDesc sql.NullString
 
 	err := r.db.QueryRow(query, id).Scan(
-		&dish.ID, &dish.Name, &dish.Description, &dish.CategoryID,
-		&dish.CreatedAt, &dish.UpdatedAt,
+		&recipe.ID, &recipe.Name, &recipe.Description, &recipe.CategoryID,
+		&recipe.CreatedAt, &recipe.UpdatedAt,
 		&category.ID, &category.Name, &categoryDesc,
 	)
 
@@ -88,17 +88,17 @@ func (r *dishRepository) GetByID(id int) (*models.Dish, error) {
 	if categoryDesc.Valid {
 		category.Description = &categoryDesc.String
 	}
-	dish.Category = &category
+	recipe.Category = &category
 
-	return &dish, nil
+	return &recipe, nil
 }
 
-func (r *dishRepository) GetByCategory(categoryID int) ([]models.Dish, error) {
+func (r *recipeRepository) GetByCategory(categoryID int) ([]models.Recipe, error) {
 	query := `
 		SELECT d.id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 		       c.id, c.name, c.description
-		FROM dish_catalogue.dishes d
-		LEFT JOIN dish_catalogue.categories c ON d.category_id = c.id
+		FROM recipe_catalogue.recipes d
+		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
 		WHERE d.category_id = $1
 		ORDER BY d.name`
 
@@ -108,15 +108,15 @@ func (r *dishRepository) GetByCategory(categoryID int) ([]models.Dish, error) {
 	}
 	defer rows.Close()
 
-	var dishes []models.Dish
+	var recipes []models.Recipe
 	for rows.Next() {
-		dish := models.Dish{}
+		recipe := models.Recipe{}
 		category := models.Category{}
 		var categoryDesc sql.NullString
 
 		err := rows.Scan(
-			&dish.ID, &dish.Name, &dish.Description, &dish.CategoryID,
-			&dish.CreatedAt, &dish.UpdatedAt,
+			&recipe.ID, &recipe.Name, &recipe.Description, &recipe.CategoryID,
+			&recipe.CreatedAt, &recipe.UpdatedAt,
 			&category.ID, &category.Name, &categoryDesc,
 		)
 		if err != nil {
@@ -126,31 +126,31 @@ func (r *dishRepository) GetByCategory(categoryID int) ([]models.Dish, error) {
 		if categoryDesc.Valid {
 			category.Description = &categoryDesc.String
 		}
-		dish.Category = &category
+		recipe.Category = &category
 
-		dishes = append(dishes, dish)
+		recipes = append(recipes, recipe)
 	}
 
-	return dishes, nil
+	return recipes, nil
 }
 
-func (r *dishRepository) Create(req models.CreateDishRequest) (*models.Dish, error) {
-	var dish models.Dish
+func (r *recipeRepository) Create(req models.CreateRecipeRequest) (*models.Recipe, error) {
+	var recipe models.Recipe
 	err := r.db.QueryRow(`
-		INSERT INTO dish_catalogue.dishes (name, description, category_id, created_at, updated_at)
+		INSERT INTO recipe_catalogue.recipes (name, description, category_id, created_at, updated_at)
 		VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 		RETURNING id, name, description, category_id, created_at, updated_at`,
 		req.Name, req.Description, req.CategoryID).Scan(
-		&dish.ID, &dish.Name, &dish.Description, &dish.CategoryID,
-		&dish.CreatedAt, &dish.UpdatedAt)
+		&recipe.ID, &recipe.Name, &recipe.Description, &recipe.CategoryID,
+		&recipe.CreatedAt, &recipe.UpdatedAt)
 
-	return &dish, err
+	return &recipe, err
 }
 
-func (r *dishRepository) Update(id int, req models.UpdateDishRequest) (*models.Dish, error) {
-	var dish models.Dish
+func (r *recipeRepository) Update(id int, req models.UpdateRecipeRequest) (*models.Recipe, error) {
+	var recipe models.Recipe
 	err := r.db.QueryRow(`
-		UPDATE dish_catalogue.dishes 
+		UPDATE recipe_catalogue.recipes 
 		SET name = COALESCE(NULLIF($2, ''), name),
 		    description = COALESCE(NULLIF($3, ''), description),
 		    category_id = COALESCE(NULLIF($4, 0), category_id),
@@ -158,14 +158,14 @@ func (r *dishRepository) Update(id int, req models.UpdateDishRequest) (*models.D
 		WHERE id = $1
 		RETURNING id, name, description, category_id, created_at, updated_at`,
 		id, req.Name, req.Description, req.CategoryID).Scan(
-		&dish.ID, &dish.Name, &dish.Description, &dish.CategoryID,
-		&dish.CreatedAt, &dish.UpdatedAt)
+		&recipe.ID, &recipe.Name, &recipe.Description, &recipe.CategoryID,
+		&recipe.CreatedAt, &recipe.UpdatedAt)
 
-	return &dish, err
+	return &recipe, err
 }
 
-func (r *dishRepository) Delete(id int) error {
-	result, err := r.db.Exec("DELETE FROM dish_catalogue.dishes WHERE id = $1", id)
+func (r *recipeRepository) Delete(id int) error {
+	result, err := r.db.Exec("DELETE FROM recipe_catalogue.recipes WHERE id = $1", id)
 	if err != nil {
 		return err
 	}
