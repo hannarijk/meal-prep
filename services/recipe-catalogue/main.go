@@ -36,26 +36,57 @@ func main() {
 	// Dependency injection chain
 	recipeRepo := repository.NewRecipeRepository(db)
 	categoryRepo := repository.NewCategoryRepository(db)
-	recipeService := service.NewRecipeService(recipeRepo, categoryRepo)
+	ingredientRepo := repository.NewIngredientRepository(db)
+
+	recipeService := service.NewRecipeService(recipeRepo, categoryRepo, ingredientRepo)
+	ingredientService := service.NewIngredientService(ingredientRepo, recipeRepo)
+
 	recipeHandler := handlers.NewRecipeHandler(recipeService)
+	ingredientHandler := handlers.NewIngredientHandler(ingredientService)
 
 	// Routes with logging middleware
 	router := mux.NewRouter()
 	router.Use(middleware.LoggingMiddleware("recipe-catalogue-service"))
 
-	// Public routes
+	// Public routes - Recipes
 	router.HandleFunc("/recipes", recipeHandler.GetAllRecipes).Methods("GET")
-	router.HandleFunc("/recipes/{id}", recipeHandler.GetRecipeByID).Methods("GET")
+	router.HandleFunc("/recipes/{id:[0-9]+}", recipeHandler.GetRecipeByID).Methods("GET")
 	router.HandleFunc("/categories", recipeHandler.GetAllCategories).Methods("GET")
-	router.HandleFunc("/categories/{id}/recipes", recipeHandler.GetRecipesByCategory).Methods("GET")
+	router.HandleFunc("/categories/{id:[0-9]+}/recipes", recipeHandler.GetRecipesByCategory).Methods("GET")
+
+	// Public routes - Ingredients
+	router.HandleFunc("/ingredients", ingredientHandler.GetAllIngredients).Methods("GET")
+	router.HandleFunc("/ingredients/{id:[0-9]+}", ingredientHandler.GetIngredientByID).Methods("GET")
+	router.HandleFunc("/ingredients/{id:[0-9]+}/recipes", ingredientHandler.GetRecipesUsingIngredient).Methods("GET")
+
+	// Public routes - Recipe ingredients (read-only)
+	router.HandleFunc("/recipes/{id:[0-9]+}/ingredients", ingredientHandler.GetRecipeIngredients).Methods("GET")
+
+	// Health check
 	router.HandleFunc("/health", healthCheck).Methods("GET")
 
-	// Protected routes
+	// Protected routes - Recipes
 	protected := router.PathPrefix("").Subrouter()
 	protected.Use(middleware.AuthMiddleware)
+
+	// Recipe management
 	protected.HandleFunc("/recipes", recipeHandler.CreateRecipe).Methods("POST")
-	protected.HandleFunc("/recipes/{id}", recipeHandler.UpdateRecipe).Methods("PUT")
-	protected.HandleFunc("/recipes/{id}", recipeHandler.DeleteRecipe).Methods("DELETE")
+	protected.HandleFunc("/recipes/{id:[0-9]+}", recipeHandler.UpdateRecipe).Methods("PUT")
+	protected.HandleFunc("/recipes/{id:[0-9]+}", recipeHandler.DeleteRecipe).Methods("DELETE")
+
+	// Ingredient management
+	protected.HandleFunc("/ingredients", ingredientHandler.CreateIngredient).Methods("POST")
+	protected.HandleFunc("/ingredients/{id:[0-9]+}", ingredientHandler.UpdateIngredient).Methods("PUT")
+	protected.HandleFunc("/ingredients/{id:[0-9]+}", ingredientHandler.DeleteIngredient).Methods("DELETE")
+
+	// Recipe-ingredient relationships
+	protected.HandleFunc("/recipes/{id:[0-9]+}/ingredients", ingredientHandler.AddRecipeIngredient).Methods("POST")
+	protected.HandleFunc("/recipes/{id:[0-9]+}/ingredients", ingredientHandler.SetRecipeIngredients).Methods("PUT")
+	protected.HandleFunc("/recipes/{recipeId:[0-9]+}/ingredients/{ingredientId:[0-9]+}", ingredientHandler.UpdateRecipeIngredient).Methods("PUT")
+	protected.HandleFunc("/recipes/{recipeId:[0-9]+}/ingredients/{ingredientId:[0-9]+}", ingredientHandler.RemoveRecipeIngredient).Methods("DELETE")
+
+	// Shopping list generation
+	protected.HandleFunc("/shopping-list", ingredientHandler.GenerateShoppingList).Methods("POST")
 
 	port := os.Getenv("RECIPE_CATALOGUE_PORT")
 	if port == "" {

@@ -128,6 +128,8 @@ curl -X POST http://localhost:8001/register \
 
 ### Recipe Catalogue Service (Port 8002)
 
+#### Recipe Management
+
 | Endpoint | Method | Description         | Auth Required |
 |----------|--------|---------------------|---------------|
 | `/health` | GET | Health check        | No |
@@ -138,6 +140,33 @@ curl -X POST http://localhost:8001/register \
 | `/recipes/{id}` | DELETE | Delete recipe       | **Yes** |
 | `/categories` | GET | List categories     | No |
 | `/categories/{id}/recipes` | GET | Recipes by category | No |
+
+#### Ingredient Management
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/ingredients` | GET | List all ingredients | No |
+| `/ingredients` | POST | Create new ingredient | **Yes** |
+| `/ingredients/{id}` | GET | Get specific ingredient | No |
+| `/ingredients/{id}` | PUT | Update ingredient | **Yes** |
+| `/ingredients/{id}` | DELETE | Delete ingredient | **Yes** |
+| `/ingredients/{id}/recipes` | GET | Recipes using ingredient | No |
+
+#### Recipe-Ingredient Relationships
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/recipes/{id}/ingredients` | GET | Get recipe ingredients | No |
+| `/recipes/{id}/ingredients` | POST | Add ingredient to recipe | **Yes** |
+| `/recipes/{id}/ingredients` | PUT | Set all recipe ingredients | **Yes** |
+| `/recipes/{recipeId}/ingredients/{ingredientId}` | PUT | Update recipe ingredient | **Yes** |
+| `/recipes/{recipeId}/ingredients/{ingredientId}` | DELETE | Remove ingredient from recipe | **Yes** |
+
+#### Shopping Lists
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/shopping-list` | POST | Generate shopping list from recipes | **Yes** |
 
 #### Create Recipe (Protected)
 
@@ -150,6 +179,71 @@ curl -X POST http://localhost:8002/recipes \
     "description": "Healthy breakfast with fresh avocado",
     "category_id": 1
   }'
+```
+
+#### Create Ingredient
+
+```bash
+curl -X POST http://localhost:8002/ingredients \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "name": "Avocado",
+    "description": "Fresh Hass avocado",
+    "category": "Produce"
+  }'
+```
+
+#### Search Ingredients
+
+```bash
+# Search by name/description
+curl "http://localhost:8002/ingredients?search=avocado"
+
+# Filter by category
+curl "http://localhost:8002/ingredients?category=Produce"
+```
+
+#### Add Ingredient to Recipe
+
+```bash
+curl -X POST http://localhost:8002/recipes/1/ingredients \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "ingredient_id": 5,
+    "quantity": 2,
+    "unit": "pieces",
+    "notes": "Ripe and soft"
+  }'
+```
+
+#### Generate Shopping List
+
+```bash
+curl -X POST http://localhost:8002/shopping-list \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "recipe_ids": [1, 3, 7, 12]
+  }'
+```
+
+**Response:**
+```json
+[
+  {
+    "ingredient_id": 5,
+    "ingredient": {
+      "id": 5,
+      "name": "Avocado",
+      "category": "Produce"
+    },
+    "total_quantity": 4,
+    "unit": "pieces",
+    "recipes": ["Avocado Toast", "Guacamole", "Green Smoothie"]
+  }
+]
 ```
 
 ### Recommendations Service (Port 8003)

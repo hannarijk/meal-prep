@@ -85,7 +85,9 @@ func (td *TestDatabase) Cleanup(t *testing.T) {
 func (td *TestDatabase) CleanupTestData(t *testing.T) {
 	queries := []string{
 		"DELETE FROM auth.users",
+		"DELETE FROM recipe_catalogue.recipe_ingredients",
 		"DELETE FROM recipe_catalogue.recipes",
+		"DELETE FROM recipe_catalogue.ingredients",
 		"DELETE FROM recipe_catalogue.categories",
 		"DELETE FROM recommendations.cooking_history",
 		"DELETE FROM recommendations.user_preferences",
@@ -121,7 +123,10 @@ func initializeTestSchema(db *database.DB) error {
 			id SERIAL PRIMARY KEY,
 			name VARCHAR(100) NOT NULL UNIQUE,
 			description TEXT,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			-- Basic constraints
+    		CONSTRAINT categories_name_not_empty CHECK (length(trim(name)) > 0)
 		);
 
 		CREATE TABLE IF NOT EXISTS recipe_catalogue.recipes (
@@ -131,6 +136,32 @@ func initializeTestSchema(db *database.DB) error {
 			category_id INTEGER REFERENCES recipe_catalogue.categories(id),
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);
+
+		CREATE TABLE IF NOT EXISTS recipe_catalogue.ingredients (
+			id SERIAL PRIMARY KEY,
+			name VARCHAR(100) NOT NULL UNIQUE,
+			description TEXT,
+			category VARCHAR(50) NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			-- Basic constraints
+			CONSTRAINT ingredients_name_not_empty CHECK (length(trim(name)) > 0),
+			CONSTRAINT ingredients_category_valid CHECK (category IN ('Meat', 'Vegetables', 'Dairy', 'Grains', 'Spices', 'Oils', 'Fish', 'Fruits'))
+		);
+
+		CREATE TABLE IF NOT EXISTS recipe_catalogue.recipe_ingredients (
+			id SERIAL PRIMARY KEY,
+			recipe_id INTEGER NOT NULL REFERENCES recipe_catalogue.recipes(id) ON DELETE CASCADE,
+			ingredient_id INTEGER NOT NULL REFERENCES recipe_catalogue.ingredients(id) ON DELETE RESTRICT,
+			quantity DECIMAL(8,2) NOT NULL,
+			unit VARCHAR(20) NOT NULL,
+			notes TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			-- Business constraints
+			CONSTRAINT recipe_ingredients_quantity_positive CHECK (quantity > 0),
+			CONSTRAINT recipe_ingredients_unit_not_empty CHECK (length(trim(unit)) > 0),
+			CONSTRAINT recipe_ingredients_unique_per_recipe UNIQUE (recipe_id, ingredient_id)
 		);
 
 		-- Recommendations tables
@@ -159,20 +190,6 @@ func initializeTestSchema(db *database.DB) error {
 			clicked BOOLEAN DEFAULT FALSE,
 			algorithm_used VARCHAR(50) 
 		);
-
-		-- Insert test categories
-		INSERT INTO recipe_catalogue.categories (name, description) VALUES 
-		('Breakfast', 'Morning meals'),
-		('Lunch', 'Midday meals'),
-		('Dinner', 'Evening meals')
-		ON CONFLICT (name) DO NOTHING;
-
-		-- Insert test recipes
-		INSERT INTO recipe_catalogue.recipes (name, description, category_id) VALUES 
-		('Scrambled Eggs', 'Classic breakfast eggs', 1),
-		('Caesar Salad', 'Fresh romaine salad', 2),
-		('Grilled Chicken', 'Juicy grilled chicken', 3)
-		ON CONFLICT DO NOTHING;
 	`
 
 	_, err := db.Exec(schemaSQL)
@@ -188,4 +205,8 @@ func SuppressTestLogs() {
 // RestoreTestLogs restores normal logging after tests
 func RestoreTestLogs() {
 	os.Setenv("LOG_LEVEL", "info")
+}
+
+func StringPtr(s string) *string {
+	return &s
 }

@@ -13,7 +13,6 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - mealprep-network
     healthcheck:
@@ -116,6 +115,63 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # -------------------------------
+  # Flyway migration runners
+  # -------------------------------
+  flyway-auth:
+    image: flyway/flyway:10
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      -url=jdbc:postgresql://postgres:5432/mealprep
+      -user=postgres
+      -password=postgres123
+      -locations=filesystem:/flyway/sql/auth
+      -schemas=auth
+      -connectRetries=30
+      migrate
+    volumes:
+      - ./migrations:/flyway/sql:ro
+    networks:
+      - mealprep-network
+
+  flyway-recipe-catalogue:
+    image: flyway/flyway:10
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      -url=jdbc:postgresql://postgres:5432/mealprep
+      -user=postgres
+      -password=postgres123
+      -locations=filesystem:/flyway/sql/recipe-catalogue
+      -schemas=recipe_catalogue
+      -connectRetries=30
+      migrate
+    volumes:
+      - ./migrations:/flyway/sql:ro
+    networks:
+      - mealprep-network
+
+  flyway-recommendations:
+    image: flyway/flyway:10
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      -url=jdbc:postgresql://postgres:5432/mealprep
+      -user=postgres
+      -password=postgres123
+      -locations=filesystem:/flyway/sql/recommendations
+      -schemas=recommendations
+      -connectRetries=30
+      migrate
+    volumes:
+      - ./migrations:/flyway/sql:ro
+    networks:
+      - mealprep-network
 
 volumes:
   postgres_data:
