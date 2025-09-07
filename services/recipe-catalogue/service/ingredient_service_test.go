@@ -338,14 +338,14 @@ func TestIngredientService_UpdateIngredient_ValidationErrors(t *testing.T) {
 		{
 			name: "empty_name",
 			request: models.UpdateIngredientRequest{
-				Name: stringPtr(""),
+				Name: "",
 			},
 			expectedError: ErrIngredientNameRequired,
 		},
 		{
 			name: "whitespace_name",
 			request: models.UpdateIngredientRequest{
-				Name: stringPtr("   "),
+				Name: "   ",
 			},
 			expectedError: ErrIngredientNameRequired,
 		},

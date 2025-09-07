@@ -233,22 +233,23 @@ func (suite *IngredientRepositoryTestSuite) TestCreateIngredient_WithNullFields(
 func (suite *IngredientRepositoryTestSuite) TestUpdateIngredient_UpdatesAndReturnsIngredient() {
 	// Arrange
 	req := models.UpdateIngredientRequest{
-		Name:        stringPtr("Updated Name"),
-		Description: stringPtr("Updated description"),
-		Category:    stringPtr("Updated Category"),
+		Name:        "Updated Name",
+		Description: "Updated description",
+		Category:    "Updated Category",
 	}
 	now := time.Now()
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
 		UPDATE recipe_catalogue.ingredients 
-		SET name = COALESCE($2, name),
-		    description = COALESCE($3, description),
-		    category = COALESCE($4, category)
-		WHERE id = $1
+        SET name = $2,
+            description = $3,
+            category = $4,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
 		RETURNING id, name, description, category, created_at`)).
 		WithArgs(1, req.Name, req.Description, req.Category).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "category", "created_at"}).
-			AddRow(1, *req.Name, *req.Description, *req.Category, now))
+			AddRow(1, req.Name, req.Description, req.Category, now))
 
 	// Act
 	ingredient, err := suite.repo.UpdateIngredient(1, req)
@@ -256,21 +257,22 @@ func (suite *IngredientRepositoryTestSuite) TestUpdateIngredient_UpdatesAndRetur
 	// Assert
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), ingredient)
-	assert.Equal(suite.T(), *req.Name, ingredient.Name)
-	assert.Equal(suite.T(), *req.Description, *ingredient.Description)
-	assert.Equal(suite.T(), *req.Category, *ingredient.Category)
+	assert.Equal(suite.T(), req.Name, ingredient.Name)
+	assert.Equal(suite.T(), req.Description, *ingredient.Description)
+	assert.Equal(suite.T(), req.Category, *ingredient.Category)
 }
 
 func (suite *IngredientRepositoryTestSuite) TestUpdateIngredient_NotFound() {
 	// Arrange
-	req := models.UpdateIngredientRequest{Name: stringPtr("Updated")}
+	req := models.UpdateIngredientRequest{Name: "Updated"}
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
 		UPDATE recipe_catalogue.ingredients 
-		SET name = COALESCE($2, name),
-		    description = COALESCE($3, description),
-		    category = COALESCE($4, category)
-		WHERE id = $1
+        SET name = $2,
+            description = $3,
+            category = $4,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
 		RETURNING id, name, description, category, created_at`)).
 		WithArgs(999, req.Name, req.Description, req.Category).
 		WillReturnError(sql.ErrNoRows)

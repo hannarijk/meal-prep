@@ -168,12 +168,12 @@ func (r *recipeRepository) Create(req models.CreateRecipeRequest) (*models.Recip
 func (r *recipeRepository) Update(id int, req models.UpdateRecipeRequest) (*models.Recipe, error) {
 	var recipe models.Recipe
 	err := r.db.QueryRow(`
-		UPDATE recipe_catalogue.recipes 
-		SET name = COALESCE(NULLIF($2, ''), name),
-		    description = COALESCE(NULLIF($3, ''), description),
-		    category_id = COALESCE(NULLIF($4, 0), category_id),
-		    updated_at = CURRENT_TIMESTAMP
-		WHERE id = $1
+        UPDATE recipe_catalogue.recipes 
+        SET name = $2,
+            description = $3,
+            category_id = $4,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
 		RETURNING id, name, description, category_id, created_at, updated_at`,
 		id, req.Name, req.Description, req.CategoryID).Scan(
 		&recipe.ID, &recipe.Name, &recipe.Description, &recipe.CategoryID,

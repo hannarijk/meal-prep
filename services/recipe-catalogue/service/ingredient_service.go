@@ -122,23 +122,17 @@ func (s *ingredientService) UpdateIngredient(id int, req models.UpdateIngredient
 	}
 
 	// Validate and clean input
-	if req.Name != nil {
-		name := strings.TrimSpace(*req.Name)
-		if name == "" {
-			return nil, ErrIngredientNameRequired
-		}
-		req.Name = &name
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		return nil, ErrIngredientNameRequired
 	}
+	req.Name = name
 
-	if req.Description != nil {
-		desc := strings.TrimSpace(*req.Description)
-		req.Description = &desc
-	}
+	desc := strings.TrimSpace(req.Description)
+	req.Description = desc
 
-	if req.Category != nil {
-		cat := strings.TrimSpace(*req.Category)
-		req.Category = &cat
-	}
+	cat := strings.TrimSpace(req.Category)
+	req.Category = cat
 
 	return s.ingredientRepo.UpdateIngredient(id, req)
 }

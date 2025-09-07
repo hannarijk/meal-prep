@@ -337,9 +337,9 @@ func TestIngredientHandler_CreateIngredient_ValidationErrors(t *testing.T) {
 func TestIngredientHandler_UpdateIngredient_Success(t *testing.T) {
 	setup := setupIngredientHandlerTest()
 	request := models.UpdateIngredientRequest{
-		Name:        stringPtr("Updated Ingredient"),
-		Description: stringPtr("Updated description"),
-		Category:    stringPtr("Updated Category"),
+		Name:        "Updated Ingredient",
+		Description: "Updated description",
+		Category:    "Updated Category",
 	}
 	expectedIngredient := testdata.NewIngredientBuilder().WithName("Updated Ingredient").BuildPtr()
 
@@ -371,7 +371,7 @@ func TestIngredientHandler_UpdateIngredient_Success(t *testing.T) {
 
 func TestIngredientHandler_UpdateIngredient_InvalidID(t *testing.T) {
 	setup := setupIngredientHandlerTest()
-	request := models.UpdateIngredientRequest{Name: stringPtr("Updated")}
+	request := models.UpdateIngredientRequest{Name: "Updated"}
 
 	requestBody, _ := json.Marshal(request)
 	req := httptest.NewRequest("PUT", "/ingredients/invalid", bytes.NewBuffer(requestBody))
@@ -416,7 +416,7 @@ func TestIngredientHandler_DeleteIngredient_Success(t *testing.T) {
 
 	setup.handler.DeleteIngredient(recorder, req)
 
-	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, http.StatusNoContent, recorder.Code)
 
 	var response map[string]string
 	err := json.NewDecoder(recorder.Body).Decode(&response)
@@ -667,12 +667,4 @@ func TestIngredientHandler_GenerateShoppingList_EmptyRecipeList(t *testing.T) {
 	assert.Equal(t, "At least one recipe ID is required", response.Message)
 
 	setup.ingredientService.AssertNotCalled(t, "GenerateShoppingList")
-}
-
-// =============================================================================
-// HELPER FUNCTIONS
-// =============================================================================
-
-func stringPtr(s string) *string {
-	return &s
 }

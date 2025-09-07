@@ -132,6 +132,8 @@ func (h *RecipeHandler) UpdateRecipe(w http.ResponseWriter, r *http.Request) {
 	recipe, err := h.recipeService.UpdateRecipe(id, req)
 	if err != nil {
 		switch err {
+		case service.ErrRecipeNameRequired:
+			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case service.ErrRecipeNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
 		case service.ErrCategoryNotFound:
@@ -173,7 +175,7 @@ func (h *RecipeHandler) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeSuccessResponse(w, map[string]string{"message": "Recipe deleted successfully"}, http.StatusOK)
+	writeSuccessResponse(w, map[string]string{"message": "Recipe deleted successfully"}, http.StatusNoContent)
 }
 
 func (h *RecipeHandler) GetAllCategories(w http.ResponseWriter, r *http.Request) {

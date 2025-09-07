@@ -221,11 +221,11 @@ func (suite *RecipeRepositoryTestSuite) TestUpdate_UpdatesAndReturnsRecipe() {
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
 		UPDATE recipe_catalogue.recipes 
-		SET name = COALESCE(NULLIF($2, ''), name),
-		    description = COALESCE(NULLIF($3, ''), description),
-		    category_id = COALESCE(NULLIF($4, 0), category_id),
-		    updated_at = CURRENT_TIMESTAMP
-		WHERE id = $1
+        SET name = $2,
+            description = $3,
+            category_id = $4,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
 		RETURNING id, name, description, category_id, created_at, updated_at`)).
 		WithArgs(1, req.Name, req.Description, req.CategoryID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "category_id", "created_at", "updated_at"}).
@@ -246,11 +246,11 @@ func (suite *RecipeRepositoryTestSuite) TestUpdate_NotFound() {
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
 		UPDATE recipe_catalogue.recipes 
-		SET name = COALESCE(NULLIF($2, ''), name),
-		    description = COALESCE(NULLIF($3, ''), description),
-		    category_id = COALESCE(NULLIF($4, 0), category_id),
-		    updated_at = CURRENT_TIMESTAMP
-		WHERE id = $1
+        SET name = $2,
+            description = $3,
+            category_id = $4,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
 		RETURNING id, name, description, category_id, created_at, updated_at`)).
 		WithArgs(999, req.Name, req.Description, req.CategoryID).
 		WillReturnError(sql.ErrNoRows)
@@ -547,8 +547,8 @@ func (suite *RecipeRepositoryTestSuite) TestCreateWithIngredients_RollsBackOnErr
 func (suite *RecipeRepositoryTestSuite) TestUpdateWithIngredients_UpdatesBothRecipeAndIngredients() {
 	// Arrange
 	req := models.UpdateRecipeWithIngredientsRequest{
-		Name:        stringPtr("Updated Recipe"),
-		Description: stringPtr("Updated description"),
+		Name:        "Updated Recipe",
+		Description: "Updated description",
 		Ingredients: []models.AddRecipeIngredientRequest{
 			{IngredientID: 1, Quantity: 150.0, Unit: "grams"},
 		},
@@ -567,9 +567,9 @@ func (suite *RecipeRepositoryTestSuite) TestUpdateWithIngredients_UpdatesBothRec
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
 		RETURNING id, name, description, category_id, created_at, updated_at`)).
-		WithArgs(1, *req.Name, *req.Description, req.CategoryID).
+		WithArgs(1, req.Name, req.Description, req.CategoryID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "category_id", "created_at", "updated_at"}).
-			AddRow(1, *req.Name, *req.Description, 1, now, now))
+			AddRow(1, req.Name, req.Description, 1, now, now))
 
 	// Expect ingredient deletion
 	suite.mock.ExpectExec(regexp.QuoteMeta("DELETE FROM recipe_catalogue.recipe_ingredients WHERE recipe_id = $1")).
@@ -598,7 +598,7 @@ func (suite *RecipeRepositoryTestSuite) TestUpdateWithIngredients_UpdatesBothRec
 			"id", "name", "description", "category_id", "created_at", "updated_at",
 			"c_id", "c_name", "c_description",
 		}).
-			AddRow(1, *req.Name, *req.Description, 1, now, now, 1, "Category", "Desc"))
+			AddRow(1, req.Name, req.Description, 1, now, now, 1, "Category", "Desc"))
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT ri.id, ri.recipe_id, ri.ingredient_id, ri.quantity, ri.unit, ri.notes, ri.created_at,
@@ -620,7 +620,7 @@ func (suite *RecipeRepositoryTestSuite) TestUpdateWithIngredients_UpdatesBothRec
 	// Assert
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), result)
-	assert.Equal(suite.T(), *req.Name, result.Recipe.Name)
+	assert.Equal(suite.T(), req.Name, result.Recipe.Name)
 	assert.Len(suite.T(), result.Ingredients, 1)
 	assert.Equal(suite.T(), 150.0, result.Ingredients[0].Quantity)
 }
@@ -628,7 +628,7 @@ func (suite *RecipeRepositoryTestSuite) TestUpdateWithIngredients_UpdatesBothRec
 func (suite *RecipeRepositoryTestSuite) TestUpdateWithIngredients_SkipsIngredientsWhenNil() {
 	// Arrange
 	req := models.UpdateRecipeWithIngredientsRequest{
-		Name:        stringPtr("Updated Recipe"),
+		Name:        "Updated Recipe",
 		Ingredients: nil, // Should not update ingredients
 	}
 	now := time.Now()
@@ -645,9 +645,9 @@ func (suite *RecipeRepositoryTestSuite) TestUpdateWithIngredients_SkipsIngredien
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
 		RETURNING id, name, description, category_id, created_at, updated_at`)).
-		WithArgs(1, *req.Name, req.Description, req.CategoryID).
+		WithArgs(1, req.Name, req.Description, req.CategoryID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "category_id", "created_at", "updated_at"}).
-			AddRow(1, *req.Name, "", 1, now, now))
+			AddRow(1, req.Name, "", 1, now, now))
 
 	// Expect commit (no ingredient operations)
 	suite.mock.ExpectCommit()
@@ -664,7 +664,7 @@ func (suite *RecipeRepositoryTestSuite) TestUpdateWithIngredients_SkipsIngredien
 			"id", "name", "description", "category_id", "created_at", "updated_at",
 			"c_id", "c_name", "c_description",
 		}).
-			AddRow(1, *req.Name, "", 1, now, now, 1, "Category", "Desc"))
+			AddRow(1, req.Name, "", 1, now, now, 1, "Category", "Desc"))
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT ri.id, ri.recipe_id, ri.ingredient_id, ri.quantity, ri.unit, ri.notes, ri.created_at,
@@ -685,7 +685,7 @@ func (suite *RecipeRepositoryTestSuite) TestUpdateWithIngredients_SkipsIngredien
 	// Assert
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), result)
-	assert.Equal(suite.T(), *req.Name, result.Recipe.Name)
+	assert.Equal(suite.T(), req.Name, result.Recipe.Name)
 	assert.Empty(suite.T(), result.Ingredients)
 }
 

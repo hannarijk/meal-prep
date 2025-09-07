@@ -1,11 +1,17 @@
 package helpers
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
+	"fmt"
+	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"meal-prep/shared/database"
 	"meal-prep/shared/logging"
+	"meal-prep/shared/utils"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -205,6 +211,90 @@ func SuppressTestLogs() {
 // RestoreTestLogs restores normal logging after tests
 func RestoreTestLogs() {
 	os.Setenv("LOG_LEVEL", "info")
+}
+
+// =============================================================================
+// HTTP REQUEST HELPERS
+// =============================================================================
+
+// TestHttpClient wraps http.Client for e2e testing
+type TestHttpClient struct {
+	Client    *http.Client
+	authToken string
+}
+
+// NewTestHttpClient creates a new TestHttpClient
+func NewTestHttpClient(client *http.Client, authToken string) *TestHttpClient {
+	return &TestHttpClient{
+		Client:    client,
+		authToken: authToken,
+	}
+}
+
+// MakeRequest performs an HTTP request without authentication
+func (c *TestHttpClient) MakeRequest(t *testing.T, method, url string, payload interface{}) *http.Response {
+	t.Helper()
+
+	var body *bytes.Buffer
+	if payload != nil {
+		jsonPayload, err := json.Marshal(payload)
+		require.NoError(t, err, "Failed to marshal request payload")
+		body = bytes.NewBuffer(jsonPayload)
+	} else {
+		body = bytes.NewBuffer(nil)
+	}
+
+	req, err := http.NewRequest(method, url, body)
+	require.NoError(t, err, "Failed to create HTTP request")
+
+	if payload != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	resp, err := c.Client.Do(req)
+	require.NoError(t, err, "HTTP request failed")
+
+	return resp
+}
+
+// MakeAuthenticatedRequest performs an HTTP request with JWT authentication
+func (c *TestHttpClient) MakeAuthenticatedRequest(t *testing.T, method, url string, payload interface{}) *http.Response {
+	t.Helper()
+
+	var body *bytes.Buffer
+	if payload != nil {
+		jsonPayload, err := json.Marshal(payload)
+		require.NoError(t, err, "Failed to marshal request payload")
+		body = bytes.NewBuffer(jsonPayload)
+	} else {
+		body = bytes.NewBuffer(nil)
+	}
+
+	req, err := http.NewRequest(method, url, body)
+	require.NoError(t, err, "Failed to create HTTP request")
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	if payload != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	resp, err := c.Client.Do(req)
+	require.NoError(t, err, "HTTP request failed")
+
+	return resp
+}
+
+// =============================================================================
+// GENERIC HELPERS
+// =============================================================================
+
+func GenerateTestJWT(userID int, email string) string {
+	tokenString, err := utils.GenerateJWT(userID, email)
+	if err != nil {
+		panic("Failed to generate test JWT: " + err.Error())
+	}
+
+	return tokenString
 }
 
 func StringPtr(s string) *string {

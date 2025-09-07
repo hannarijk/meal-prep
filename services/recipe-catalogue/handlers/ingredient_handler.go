@@ -158,7 +158,7 @@ func (h *IngredientHandler) DeleteIngredient(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	writeSuccessResponse(w, map[string]string{"message": "Ingredient deleted successfully"}, http.StatusOK)
+	writeSuccessResponse(w, map[string]string{"message": "Ingredient deleted successfully"}, http.StatusNoContent)
 }
 
 func (h *IngredientHandler) GetRecipesUsingIngredient(w http.ResponseWriter, r *http.Request) {

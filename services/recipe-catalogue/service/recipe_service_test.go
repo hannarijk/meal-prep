@@ -282,6 +282,40 @@ func TestRecipeService_UpdateRecipe_Success(t *testing.T) {
 	setup.categoryRepo.AssertExpectations(t)
 }
 
+func TestRecipeService_UpdateRecipe_RequiresName(t *testing.T) {
+	setup := setupRecipeServiceTest()
+	recipeID := 1
+	updateReq := models.UpdateRecipeRequest{
+		Name:        "", // Should fail validation
+		Description: "Some description",
+		CategoryID:  1,
+	}
+
+	result, err := setup.service.UpdateRecipe(recipeID, updateReq)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, ErrRecipeNameRequired, err)
+	setup.recipeRepo.AssertNotCalled(t, "GetByID")
+}
+
+func TestRecipeService_UpdateRecipe_InvalidCategoryId(t *testing.T) {
+	setup := setupRecipeServiceTest()
+	recipeID := 1
+	updateReq := models.UpdateRecipeRequest{
+		Name:        "Some name",
+		Description: "",
+		CategoryID:  0, // Should fail validation
+	}
+
+	result, err := setup.service.UpdateRecipe(recipeID, updateReq)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, ErrInvalidCategory, err)
+	setup.recipeRepo.AssertNotCalled(t, "GetByID")
+}
+
 func TestRecipeService_UpdateRecipe_InvalidID(t *testing.T) {
 	invalidIDs := []int{0, -1}
 
@@ -625,7 +659,8 @@ func TestRecipeService_UpdateRecipeWithIngredients_Success(t *testing.T) {
 	setup := setupRecipeServiceTest()
 	recipeID := 1
 	request := models.UpdateRecipeWithIngredientsRequest{
-		Name: stringPtr("Updated Recipe"),
+		Name:       "Recipe with Ingredients",
+		CategoryID: 1,
 		Ingredients: []models.AddRecipeIngredientRequest{
 			{IngredientID: 1, Quantity: 150.0, Unit: "grams"},
 		},
@@ -634,6 +669,7 @@ func TestRecipeService_UpdateRecipeWithIngredients_Success(t *testing.T) {
 	expectedResult := testdata.NewRecipeWithIngredientsBuilder().BuildPtr()
 
 	setup.recipeRepo.On("GetByID", recipeID).Return(existingRecipe, nil)
+	setup.categoryRepo.On("Exists", 1).Return(true, nil)
 	setup.ingredientRepo.On("IngredientExists", 1).Return(true, nil)
 	setup.recipeRepo.On("UpdateWithIngredients", recipeID, mock.AnythingOfType("models.UpdateRecipeWithIngredientsRequest")).
 		Return(expectedResult, nil)
@@ -753,12 +789,4 @@ func TestRecipeService_SearchRecipesByIngredientsWithIngredients_EmptyInput(t *t
 	assert.Empty(t, result)
 	setup.ingredientRepo.AssertNotCalled(t, "IngredientExists")
 	setup.recipeRepo.AssertNotCalled(t, "SearchRecipesByIngredientsWithIngredients")
-}
-
-// =============================================================================
-// HELPER FUNCTIONS
-// =============================================================================
-
-func stringPtr(s string) *string {
-	return &s
 }

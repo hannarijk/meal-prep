@@ -514,7 +514,7 @@ func TestRecipeHandler_DeleteRecipe_Success(t *testing.T) {
 
 	setup.handler.DeleteRecipe(recorder, req)
 
-	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, http.StatusNoContent, recorder.Code)
 
 	var response map[string]string
 	err := json.NewDecoder(recorder.Body).Decode(&response)

@@ -131,11 +131,12 @@ func (r *ingredientRepository) CreateIngredient(req models.CreateIngredientReque
 
 func (r *ingredientRepository) UpdateIngredient(id int, req models.UpdateIngredientRequest) (*models.Ingredient, error) {
 	query := `
-		UPDATE recipe_catalogue.ingredients 
-		SET name = COALESCE($2, name),
-		    description = COALESCE($3, description),
-		    category = COALESCE($4, category)
-		WHERE id = $1
+        UPDATE recipe_catalogue.ingredients 
+        SET name = $2,
+            description = $3,
+            category = $4,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
 		RETURNING id, name, description, category, created_at`
 
 	row := r.db.QueryRow(query, id, req.Name, req.Description, req.Category)

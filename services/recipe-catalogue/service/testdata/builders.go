@@ -409,25 +409,25 @@ type UpdateIngredientRequestBuilder struct {
 func NewUpdateIngredientRequestBuilder() *UpdateIngredientRequestBuilder {
 	return &UpdateIngredientRequestBuilder{
 		request: models.UpdateIngredientRequest{
-			Name:        stringPtr("Updated Ingredient"),
-			Description: stringPtr("Updated description"),
-			Category:    stringPtr("Updated Category"),
+			Name:        "Updated Ingredient",
+			Description: "Updated description",
+			Category:    "Updated Category",
 		},
 	}
 }
 
 func (b *UpdateIngredientRequestBuilder) WithName(name string) *UpdateIngredientRequestBuilder {
-	b.request.Name = &name
+	b.request.Name = name
 	return b
 }
 
 func (b *UpdateIngredientRequestBuilder) WithDescription(description string) *UpdateIngredientRequestBuilder {
-	b.request.Description = &description
+	b.request.Description = description
 	return b
 }
 
 func (b *UpdateIngredientRequestBuilder) WithCategory(category string) *UpdateIngredientRequestBuilder {
-	b.request.Category = &category
+	b.request.Category = category
 	return b
 }
 

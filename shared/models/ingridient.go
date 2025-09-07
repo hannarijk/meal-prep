@@ -28,9 +28,9 @@ type CreateIngredientRequest struct {
 }
 
 type UpdateIngredientRequest struct {
-	Name        *string `json:"name,omitempty"`
-	Description *string `json:"description,omitempty"`
-	Category    *string `json:"category,omitempty"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Category    string `json:"category"`
 }
 
 type ShoppingListItem struct {

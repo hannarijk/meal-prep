@@ -109,6 +109,14 @@ func (s *recipeService) CreateRecipe(req models.CreateRecipeRequest) (*models.Re
 }
 
 func (s *recipeService) UpdateRecipe(id int, req models.UpdateRecipeRequest) (*models.Recipe, error) {
+	if req.Name == "" {
+		return nil, ErrRecipeNameRequired
+	}
+
+	if req.CategoryID <= 0 {
+		return nil, ErrInvalidCategory
+	}
+
 	if id <= 0 {
 		return nil, ErrRecipeNotFound
 	}
@@ -265,28 +273,22 @@ func (s *recipeService) UpdateRecipeWithIngredients(id int, req models.UpdateRec
 	}
 
 	// Validate and clean input
-	if req.Name != nil {
-		name := strings.TrimSpace(*req.Name)
-		if name == "" {
-			return nil, ErrRecipeNameRequired
-		}
-		req.Name = &name
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		return nil, ErrRecipeNameRequired
 	}
+	req.Name = name
 
-	if req.Description != nil {
-		desc := strings.TrimSpace(*req.Description)
-		req.Description = &desc
-	}
+	desc := strings.TrimSpace(req.Description)
+	req.Description = desc
 
 	// If category is being updated, validate it exists
-	if req.CategoryID != nil && *req.CategoryID > 0 {
-		exists, err := s.categoryRepo.Exists(*req.CategoryID)
-		if err != nil {
-			return nil, err
-		}
-		if !exists {
-			return nil, ErrCategoryNotFound
-		}
+	exists, err := s.categoryRepo.Exists(req.CategoryID)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, ErrCategoryNotFound
 	}
 
 	// Validate ingredients if provided

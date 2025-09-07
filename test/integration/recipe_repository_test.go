@@ -495,9 +495,9 @@ func (suite *RecipeRepositoryIntegrationSuite) TestUpdateWithIngredients_Success
 
 	// Update recipe with different ingredients
 	updateReq := models.UpdateRecipeWithIngredientsRequest{
-		Name:        helpers.StringPtr("Updated Recipe"),
-		Description: helpers.StringPtr("Updated description"),
-		CategoryID:  &suite.healthyCategoryID,
+		Name:        "Updated Recipe",
+		Description: "Updated description",
+		CategoryID:  suite.healthyCategoryID,
 		Ingredients: []models.AddRecipeIngredientRequest{
 			{IngredientID: suite.cheeseIngredientID, Quantity: 50.0, Unit: "grams", Notes: helpers.StringPtr("Grated")},
 			{IngredientID: suite.pastaIngredientID, Quantity: 200.0, Unit: "grams", Notes: nil},

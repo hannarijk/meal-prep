@@ -37,9 +37,9 @@ type CreateRecipeRequest struct {
 }
 
 type UpdateRecipeRequest struct {
-	Name        string `json:"name,omitempty"`
-	Description string `json:"description,omitempty"`
-	CategoryID  int    `json:"category_id,omitempty"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	CategoryID  int    `json:"category_id"`
 }
 
 type RecipeWithIngredients struct {
@@ -62,8 +62,8 @@ type CreateRecipeWithIngredientsRequest struct {
 }
 
 type UpdateRecipeWithIngredientsRequest struct {
-	Name        *string                      `json:"name,omitempty"`
-	Description *string                      `json:"description,omitempty"`
-	CategoryID  *int                         `json:"category_id,omitempty"`
-	Ingredients []AddRecipeIngredientRequest `json:"ingredients,omitempty"`
+	Name        string                       `json:"name"`
+	Description string                       `json:"description"`
+	CategoryID  int                          `json:"category_id"`
+	Ingredients []AddRecipeIngredientRequest `json:"ingredients"`
 }
