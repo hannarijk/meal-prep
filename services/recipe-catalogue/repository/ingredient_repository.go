@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"github.com/lib/pq"
+	"meal-prep/services/recipe-catalogue/domain"
 	"meal-prep/shared/database"
 	"meal-prep/shared/models"
 )
@@ -126,7 +127,18 @@ func (r *ingredientRepository) CreateIngredient(req models.CreateIngredientReque
 		RETURNING id, name, description, category, created_at`
 
 	row := r.db.QueryRow(query, req.Name, req.Description, req.Category)
-	return r.scanIngredient(row)
+
+	ingredient, err := r.scanIngredient(row)
+	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
+			if pqErr.Constraint == "ingredients_name_key" {
+				return nil, domain.ErrIngredientExists
+			}
+		}
+		return nil, err
+	}
+
+	return ingredient, nil
 }
 
 func (r *ingredientRepository) UpdateIngredient(id int, req models.UpdateIngredientRequest) (*models.Ingredient, error) {
@@ -207,6 +219,11 @@ func (r *ingredientRepository) AddRecipeIngredient(recipeID int, req models.AddR
 		&ri.ID, &ri.RecipeID, &ri.IngredientID, &ri.Quantity, &ri.Unit, &ri.Notes, &ri.CreatedAt)
 
 	if err != nil {
+		if pgErr, ok := err.(*pq.Error); ok && pgErr.Code == "23505" {
+			if pgErr.Constraint == "recipe_ingredients_unique_per_recipe" {
+				return nil, domain.ErrRecipeIngredientAlreadyExists
+			}
+		}
 		return nil, err
 	}
 

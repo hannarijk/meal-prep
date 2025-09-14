@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"meal-prep/services/recipe-catalogue/domain"
 	"net/http"
 	"strconv"
 
@@ -41,7 +42,7 @@ func (h *RecipeHandler) GetRecipeByID(w http.ResponseWriter, r *http.Request) {
 	recipe, err := h.recipeService.GetRecipeByID(id)
 	if err != nil {
 		switch err {
-		case service.ErrRecipeNotFound:
+		case domain.ErrRecipeNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
 		default:
 			writeErrorResponse(w, "Failed to fetch recipe", http.StatusInternalServerError)
@@ -63,9 +64,9 @@ func (h *RecipeHandler) GetRecipesByCategory(w http.ResponseWriter, r *http.Requ
 	recipes, err := h.recipeService.GetRecipesByCategory(categoryID)
 	if err != nil {
 		switch err {
-		case service.ErrCategoryNotFound:
+		case domain.ErrCategoryNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
-		case service.ErrInvalidCategory:
+		case domain.ErrInvalidCategory:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
 			writeErrorResponse(w, "Failed to fetch recipes", http.StatusInternalServerError)
@@ -93,11 +94,11 @@ func (h *RecipeHandler) CreateRecipe(w http.ResponseWriter, r *http.Request) {
 	recipe, err := h.recipeService.CreateRecipe(req)
 	if err != nil {
 		switch err {
-		case service.ErrRecipeNameRequired:
+		case domain.ErrRecipeNameRequired:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
-		case service.ErrCategoryNotFound:
+		case domain.ErrCategoryNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
-		case service.ErrInvalidCategory:
+		case domain.ErrInvalidCategory:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
 			writeErrorResponse(w, "Failed to create recipe", http.StatusInternalServerError)
@@ -132,13 +133,13 @@ func (h *RecipeHandler) UpdateRecipe(w http.ResponseWriter, r *http.Request) {
 	recipe, err := h.recipeService.UpdateRecipe(id, req)
 	if err != nil {
 		switch err {
-		case service.ErrRecipeNameRequired:
+		case domain.ErrRecipeNameRequired:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
-		case service.ErrRecipeNotFound:
+		case domain.ErrRecipeNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
-		case service.ErrCategoryNotFound:
+		case domain.ErrCategoryNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
-		case service.ErrInvalidCategory:
+		case domain.ErrInvalidCategory:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
 			writeErrorResponse(w, "Failed to update recipe", http.StatusInternalServerError)
@@ -167,7 +168,7 @@ func (h *RecipeHandler) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
 	err = h.recipeService.DeleteRecipe(id)
 	if err != nil {
 		switch err {
-		case service.ErrRecipeNotFound:
+		case domain.ErrRecipeNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
 		default:
 			writeErrorResponse(w, "Failed to delete recipe", http.StatusInternalServerError)

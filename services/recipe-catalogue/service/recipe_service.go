@@ -2,18 +2,11 @@ package service
 
 import (
 	"database/sql"
-	"errors"
+	"meal-prep/services/recipe-catalogue/domain"
 	"strings"
 
 	"meal-prep/services/recipe-catalogue/repository"
 	"meal-prep/shared/models"
-)
-
-var (
-	ErrRecipeNotFound     = errors.New("recipe not found")
-	ErrCategoryNotFound   = errors.New("category not found")
-	ErrRecipeNameRequired = errors.New("recipe name is required")
-	ErrInvalidCategory    = errors.New("invalid category ID")
 )
 
 type RecipeService interface {
@@ -55,13 +48,13 @@ func (s *recipeService) GetAllRecipes() ([]models.Recipe, error) {
 
 func (s *recipeService) GetRecipeByID(id int) (*models.Recipe, error) {
 	if id <= 0 {
-		return nil, ErrRecipeNotFound
+		return nil, domain.ErrRecipeNotFound
 	}
 
 	recipe, err := s.recipeRepo.GetByID(id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrRecipeNotFound
+			return nil, domain.ErrRecipeNotFound
 		}
 		return nil, err
 	}
@@ -71,7 +64,7 @@ func (s *recipeService) GetRecipeByID(id int) (*models.Recipe, error) {
 
 func (s *recipeService) GetRecipesByCategory(categoryID int) ([]models.Recipe, error) {
 	if categoryID <= 0 {
-		return nil, ErrInvalidCategory
+		return nil, domain.ErrInvalidCategory
 	}
 
 	exists, err := s.categoryRepo.Exists(categoryID)
@@ -79,7 +72,7 @@ func (s *recipeService) GetRecipesByCategory(categoryID int) ([]models.Recipe, e
 		return nil, err
 	}
 	if !exists {
-		return nil, ErrCategoryNotFound
+		return nil, domain.ErrCategoryNotFound
 	}
 
 	return s.recipeRepo.GetByCategory(categoryID)
@@ -90,11 +83,11 @@ func (s *recipeService) CreateRecipe(req models.CreateRecipeRequest) (*models.Re
 	req.Description = strings.TrimSpace(req.Description)
 
 	if req.Name == "" {
-		return nil, ErrRecipeNameRequired
+		return nil, domain.ErrRecipeNameRequired
 	}
 
 	if req.CategoryID <= 0 {
-		return nil, ErrInvalidCategory
+		return nil, domain.ErrInvalidCategory
 	}
 
 	exists, err := s.categoryRepo.Exists(req.CategoryID)
@@ -102,7 +95,7 @@ func (s *recipeService) CreateRecipe(req models.CreateRecipeRequest) (*models.Re
 		return nil, err
 	}
 	if !exists {
-		return nil, ErrCategoryNotFound
+		return nil, domain.ErrCategoryNotFound
 	}
 
 	return s.recipeRepo.Create(req)
@@ -110,22 +103,22 @@ func (s *recipeService) CreateRecipe(req models.CreateRecipeRequest) (*models.Re
 
 func (s *recipeService) UpdateRecipe(id int, req models.UpdateRecipeRequest) (*models.Recipe, error) {
 	if req.Name == "" {
-		return nil, ErrRecipeNameRequired
+		return nil, domain.ErrRecipeNameRequired
 	}
 
 	if req.CategoryID <= 0 {
-		return nil, ErrInvalidCategory
+		return nil, domain.ErrInvalidCategory
 	}
 
 	if id <= 0 {
-		return nil, ErrRecipeNotFound
+		return nil, domain.ErrRecipeNotFound
 	}
 
 	// Check if recipe exists
 	_, err := s.recipeRepo.GetByID(id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrRecipeNotFound
+			return nil, domain.ErrRecipeNotFound
 		}
 		return nil, err
 	}
@@ -141,7 +134,7 @@ func (s *recipeService) UpdateRecipe(id int, req models.UpdateRecipeRequest) (*m
 			return nil, err
 		}
 		if !exists {
-			return nil, ErrCategoryNotFound
+			return nil, domain.ErrCategoryNotFound
 		}
 	}
 
@@ -150,13 +143,13 @@ func (s *recipeService) UpdateRecipe(id int, req models.UpdateRecipeRequest) (*m
 
 func (s *recipeService) DeleteRecipe(id int) error {
 	if id <= 0 {
-		return ErrRecipeNotFound
+		return domain.ErrRecipeNotFound
 	}
 
 	err := s.recipeRepo.Delete(id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return ErrRecipeNotFound
+			return domain.ErrRecipeNotFound
 		}
 		return err
 	}
@@ -174,13 +167,13 @@ func (s *recipeService) GetAllRecipesWithIngredients() ([]models.RecipeWithIngre
 
 func (s *recipeService) GetRecipeByIDWithIngredients(id int) (*models.RecipeWithIngredients, error) {
 	if id <= 0 {
-		return nil, ErrRecipeNotFound
+		return nil, domain.ErrRecipeNotFound
 	}
 
 	recipe, err := s.recipeRepo.GetByIDWithIngredients(id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrRecipeNotFound
+			return nil, domain.ErrRecipeNotFound
 		}
 		return nil, err
 	}
@@ -190,7 +183,7 @@ func (s *recipeService) GetRecipeByIDWithIngredients(id int) (*models.RecipeWith
 
 func (s *recipeService) GetRecipesByCategoryWithIngredients(categoryID int) ([]models.RecipeWithIngredients, error) {
 	if categoryID <= 0 {
-		return nil, ErrInvalidCategory
+		return nil, domain.ErrInvalidCategory
 	}
 
 	exists, err := s.categoryRepo.Exists(categoryID)
@@ -198,7 +191,7 @@ func (s *recipeService) GetRecipesByCategoryWithIngredients(categoryID int) ([]m
 		return nil, err
 	}
 	if !exists {
-		return nil, ErrCategoryNotFound
+		return nil, domain.ErrCategoryNotFound
 	}
 
 	return s.recipeRepo.GetByCategoryWithIngredients(categoryID)
@@ -213,11 +206,11 @@ func (s *recipeService) CreateRecipeWithIngredients(req models.CreateRecipeWithI
 	}
 
 	if req.Name == "" {
-		return nil, ErrRecipeNameRequired
+		return nil, domain.ErrRecipeNameRequired
 	}
 
 	if req.CategoryID <= 0 {
-		return nil, ErrInvalidCategory
+		return nil, domain.ErrInvalidCategory
 	}
 
 	exists, err := s.categoryRepo.Exists(req.CategoryID)
@@ -225,23 +218,23 @@ func (s *recipeService) CreateRecipeWithIngredients(req models.CreateRecipeWithI
 		return nil, err
 	}
 	if !exists {
-		return nil, ErrCategoryNotFound
+		return nil, domain.ErrCategoryNotFound
 	}
 
 	// Validate ingredients if provided
 	if len(req.Ingredients) > 0 {
 		for _, ingredient := range req.Ingredients {
 			if ingredient.IngredientID <= 0 {
-				return nil, ErrIngredientNotFound
+				return nil, domain.ErrIngredientNotFound
 			}
 
 			if ingredient.Quantity <= 0 {
-				return nil, ErrInvalidQuantity
+				return nil, domain.ErrInvalidQuantity
 			}
 
 			ingredient.Unit = strings.TrimSpace(ingredient.Unit)
 			if ingredient.Unit == "" {
-				return nil, ErrInvalidUnit
+				return nil, domain.ErrInvalidUnit
 			}
 
 			// Verify ingredient exists
@@ -250,7 +243,7 @@ func (s *recipeService) CreateRecipeWithIngredients(req models.CreateRecipeWithI
 				return nil, err
 			}
 			if !exists {
-				return nil, ErrIngredientNotFound
+				return nil, domain.ErrIngredientNotFound
 			}
 		}
 	}
@@ -260,14 +253,14 @@ func (s *recipeService) CreateRecipeWithIngredients(req models.CreateRecipeWithI
 
 func (s *recipeService) UpdateRecipeWithIngredients(id int, req models.UpdateRecipeWithIngredientsRequest) (*models.RecipeWithIngredients, error) {
 	if id <= 0 {
-		return nil, ErrRecipeNotFound
+		return nil, domain.ErrRecipeNotFound
 	}
 
 	// Check if recipe exists
 	_, err := s.recipeRepo.GetByID(id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrRecipeNotFound
+			return nil, domain.ErrRecipeNotFound
 		}
 		return nil, err
 	}
@@ -275,7 +268,7 @@ func (s *recipeService) UpdateRecipeWithIngredients(id int, req models.UpdateRec
 	// Validate and clean input
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
-		return nil, ErrRecipeNameRequired
+		return nil, domain.ErrRecipeNameRequired
 	}
 	req.Name = name
 
@@ -288,23 +281,23 @@ func (s *recipeService) UpdateRecipeWithIngredients(id int, req models.UpdateRec
 		return nil, err
 	}
 	if !exists {
-		return nil, ErrCategoryNotFound
+		return nil, domain.ErrCategoryNotFound
 	}
 
 	// Validate ingredients if provided
 	if req.Ingredients != nil {
 		for _, ingredient := range req.Ingredients {
 			if ingredient.IngredientID <= 0 {
-				return nil, ErrIngredientNotFound
+				return nil, domain.ErrIngredientNotFound
 			}
 
 			if ingredient.Quantity <= 0 {
-				return nil, ErrInvalidQuantity
+				return nil, domain.ErrInvalidQuantity
 			}
 
 			ingredient.Unit = strings.TrimSpace(ingredient.Unit)
 			if ingredient.Unit == "" {
-				return nil, ErrInvalidUnit
+				return nil, domain.ErrInvalidUnit
 			}
 
 			// Verify ingredient exists
@@ -313,7 +306,7 @@ func (s *recipeService) UpdateRecipeWithIngredients(id int, req models.UpdateRec
 				return nil, err
 			}
 			if !exists {
-				return nil, ErrIngredientNotFound
+				return nil, domain.ErrIngredientNotFound
 			}
 		}
 	}
@@ -329,7 +322,7 @@ func (s *recipeService) SearchRecipesByIngredients(ingredientIDs []int) ([]model
 	// Validate ingredient IDs
 	for _, ingredientID := range ingredientIDs {
 		if ingredientID <= 0 {
-			return nil, ErrIngredientNotFound
+			return nil, domain.ErrIngredientNotFound
 		}
 
 		exists, err := s.ingredientRepo.IngredientExists(ingredientID)
@@ -337,7 +330,7 @@ func (s *recipeService) SearchRecipesByIngredients(ingredientIDs []int) ([]model
 			return nil, err
 		}
 		if !exists {
-			return nil, ErrIngredientNotFound
+			return nil, domain.ErrIngredientNotFound
 		}
 	}
 
@@ -352,7 +345,7 @@ func (s *recipeService) SearchRecipesByIngredientsWithIngredients(ingredientIDs 
 	// Validate ingredient IDs
 	for _, ingredientID := range ingredientIDs {
 		if ingredientID <= 0 {
-			return nil, ErrIngredientNotFound
+			return nil, domain.ErrIngredientNotFound
 		}
 
 		exists, err := s.ingredientRepo.IngredientExists(ingredientID)
@@ -360,7 +353,7 @@ func (s *recipeService) SearchRecipesByIngredientsWithIngredients(ingredientIDs 
 			return nil, err
 		}
 		if !exists {
-			return nil, ErrIngredientNotFound
+			return nil, domain.ErrIngredientNotFound
 		}
 	}
 

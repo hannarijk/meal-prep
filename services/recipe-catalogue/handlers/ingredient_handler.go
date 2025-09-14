@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
+	"meal-prep/services/recipe-catalogue/domain"
 	"meal-prep/services/recipe-catalogue/service"
 	"meal-prep/shared/middleware"
 	"meal-prep/shared/models"
@@ -52,7 +53,7 @@ func (h *IngredientHandler) GetIngredientByID(w http.ResponseWriter, r *http.Req
 	ingredient, err := h.ingredientService.GetIngredientByID(id)
 	if err != nil {
 		switch err {
-		case service.ErrIngredientNotFound:
+		case domain.ErrIngredientNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
 		default:
 			writeErrorResponse(w, "Failed to fetch ingredient", http.StatusInternalServerError)
@@ -80,9 +81,9 @@ func (h *IngredientHandler) CreateIngredient(w http.ResponseWriter, r *http.Requ
 	ingredient, err := h.ingredientService.CreateIngredient(req)
 	if err != nil {
 		switch err {
-		case service.ErrIngredientNameRequired:
+		case domain.ErrIngredientNameRequired:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
-		case service.ErrIngredientExists:
+		case domain.ErrIngredientExists:
 			writeErrorResponse(w, err.Error(), http.StatusConflict)
 		default:
 			writeErrorResponse(w, "Failed to create ingredient", http.StatusInternalServerError)
@@ -117,9 +118,9 @@ func (h *IngredientHandler) UpdateIngredient(w http.ResponseWriter, r *http.Requ
 	ingredient, err := h.ingredientService.UpdateIngredient(id, req)
 	if err != nil {
 		switch err {
-		case service.ErrIngredientNotFound:
+		case domain.ErrIngredientNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
-		case service.ErrIngredientNameRequired:
+		case domain.ErrIngredientNameRequired:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
 			writeErrorResponse(w, "Failed to update ingredient", http.StatusInternalServerError)
@@ -148,9 +149,9 @@ func (h *IngredientHandler) DeleteIngredient(w http.ResponseWriter, r *http.Requ
 	err = h.ingredientService.DeleteIngredient(id)
 	if err != nil {
 		switch err {
-		case service.ErrIngredientNotFound:
+		case domain.ErrIngredientNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
-		case service.ErrCannotDeleteIngredient:
+		case domain.ErrCannotDeleteIngredient:
 			writeErrorResponse(w, err.Error(), http.StatusConflict)
 		default:
 			writeErrorResponse(w, "Failed to delete ingredient", http.StatusInternalServerError)
@@ -172,7 +173,7 @@ func (h *IngredientHandler) GetRecipesUsingIngredient(w http.ResponseWriter, r *
 	recipes, err := h.ingredientService.GetRecipesUsingIngredient(id)
 	if err != nil {
 		switch err {
-		case service.ErrIngredientNotFound:
+		case domain.ErrIngredientNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
 		default:
 			writeErrorResponse(w, "Failed to fetch recipes", http.StatusInternalServerError)
@@ -194,7 +195,7 @@ func (h *IngredientHandler) GetRecipeIngredients(w http.ResponseWriter, r *http.
 	ingredients, err := h.ingredientService.GetRecipeIngredients(recipeID)
 	if err != nil {
 		switch err {
-		case service.ErrRecipeNotFound:
+		case domain.ErrRecipeNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
 		default:
 			writeErrorResponse(w, "Failed to fetch recipe ingredients", http.StatusInternalServerError)
@@ -229,14 +230,16 @@ func (h *IngredientHandler) AddRecipeIngredient(w http.ResponseWriter, r *http.R
 	ingredient, err := h.ingredientService.AddRecipeIngredient(recipeID, req)
 	if err != nil {
 		switch err {
-		case service.ErrRecipeNotFound:
+		case domain.ErrRecipeNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
-		case service.ErrIngredientNotFound:
+		case domain.ErrIngredientNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
-		case service.ErrInvalidQuantity:
+		case domain.ErrInvalidQuantity:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
-		case service.ErrInvalidUnit:
+		case domain.ErrInvalidUnit:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+		case domain.ErrRecipeIngredientAlreadyExists:
+			writeErrorResponse(w, err.Error(), http.StatusConflict)
 		default:
 			writeErrorResponse(w, "Failed to add ingredient to recipe", http.StatusInternalServerError)
 		}
@@ -276,13 +279,13 @@ func (h *IngredientHandler) UpdateRecipeIngredient(w http.ResponseWriter, r *htt
 	ingredient, err := h.ingredientService.UpdateRecipeIngredient(recipeID, ingredientID, req)
 	if err != nil {
 		switch err {
-		case service.ErrRecipeNotFound:
+		case domain.ErrRecipeNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
-		case service.ErrIngredientNotFound:
+		case domain.ErrIngredientNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
-		case service.ErrInvalidQuantity:
+		case domain.ErrInvalidQuantity:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
-		case service.ErrInvalidUnit:
+		case domain.ErrInvalidUnit:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
 			writeErrorResponse(w, "Failed to update recipe ingredient", http.StatusInternalServerError)
@@ -317,9 +320,9 @@ func (h *IngredientHandler) RemoveRecipeIngredient(w http.ResponseWriter, r *htt
 	err = h.ingredientService.RemoveRecipeIngredient(recipeID, ingredientID)
 	if err != nil {
 		switch err {
-		case service.ErrRecipeNotFound:
+		case domain.ErrRecipeNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
-		case service.ErrIngredientNotFound:
+		case domain.ErrIngredientNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
 		default:
 			writeErrorResponse(w, "Failed to remove ingredient from recipe", http.StatusInternalServerError)
@@ -354,13 +357,13 @@ func (h *IngredientHandler) SetRecipeIngredients(w http.ResponseWriter, r *http.
 	err = h.ingredientService.SetRecipeIngredients(recipeID, req)
 	if err != nil {
 		switch err {
-		case service.ErrRecipeNotFound:
+		case domain.ErrRecipeNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusNotFound)
-		case service.ErrIngredientNotFound:
+		case domain.ErrIngredientNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
-		case service.ErrInvalidQuantity:
+		case domain.ErrInvalidQuantity:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
-		case service.ErrInvalidUnit:
+		case domain.ErrInvalidUnit:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
 			writeErrorResponse(w, "Failed to update recipe ingredients", http.StatusInternalServerError)
@@ -400,7 +403,7 @@ func (h *IngredientHandler) GenerateShoppingList(w http.ResponseWriter, r *http.
 	shoppingList, err := h.ingredientService.GenerateShoppingList(req)
 	if err != nil {
 		switch err {
-		case service.ErrRecipeNotFound:
+		case domain.ErrRecipeNotFound:
 			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
 			writeErrorResponse(w, "Failed to generate shopping list", http.StatusInternalServerError)

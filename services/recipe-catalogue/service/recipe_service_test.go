@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"meal-prep/services/recipe-catalogue/domain"
 	"testing"
 
 	"meal-prep/services/recipe-catalogue/service/mocks"
@@ -101,7 +102,7 @@ func TestRecipeService_GetRecipeByID_InvalidID(t *testing.T) {
 
 			assert.Error(t, err)
 			assert.Nil(t, result)
-			assert.Equal(t, ErrRecipeNotFound, err)
+			assert.Equal(t, domain.ErrRecipeNotFound, err)
 			setup.recipeRepo.AssertNotCalled(t, "GetByID")
 		})
 	}
@@ -116,7 +117,7 @@ func TestRecipeService_GetRecipeByID_NotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrRecipeNotFound, err)
+	assert.Equal(t, domain.ErrRecipeNotFound, err)
 	setup.recipeRepo.AssertExpectations(t)
 }
 
@@ -154,7 +155,7 @@ func TestRecipeService_GetRecipesByCategory_InvalidCategory(t *testing.T) {
 
 			assert.Error(t, err)
 			assert.Nil(t, result)
-			assert.Equal(t, ErrInvalidCategory, err)
+			assert.Equal(t, domain.ErrInvalidCategory, err)
 			setup.categoryRepo.AssertNotCalled(t, "Exists")
 		})
 	}
@@ -170,7 +171,7 @@ func TestRecipeService_GetRecipesByCategory_CategoryNotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrCategoryNotFound, err)
+	assert.Equal(t, domain.ErrCategoryNotFound, err)
 	setup.categoryRepo.AssertExpectations(t)
 }
 
@@ -208,22 +209,22 @@ func TestRecipeService_CreateRecipe_ValidationErrors(t *testing.T) {
 		{
 			name:          "empty_name",
 			request:       testdata.NewCreateRecipeRequestBuilder().WithName("").Build(),
-			expectedError: ErrRecipeNameRequired,
+			expectedError: domain.ErrRecipeNameRequired,
 		},
 		{
 			name:          "whitespace_name",
 			request:       testdata.NewCreateRecipeRequestBuilder().WithName("   ").Build(),
-			expectedError: ErrRecipeNameRequired,
+			expectedError: domain.ErrRecipeNameRequired,
 		},
 		{
 			name:          "zero_category",
 			request:       testdata.NewCreateRecipeRequestBuilder().WithCategoryID(0).Build(),
-			expectedError: ErrInvalidCategory,
+			expectedError: domain.ErrInvalidCategory,
 		},
 		{
 			name:          "negative_category",
 			request:       testdata.NewCreateRecipeRequestBuilder().WithCategoryID(-1).Build(),
-			expectedError: ErrInvalidCategory,
+			expectedError: domain.ErrInvalidCategory,
 		},
 	}
 
@@ -252,7 +253,7 @@ func TestRecipeService_CreateRecipe_CategoryNotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrCategoryNotFound, err)
+	assert.Equal(t, domain.ErrCategoryNotFound, err)
 	setup.categoryRepo.AssertExpectations(t)
 	setup.recipeRepo.AssertNotCalled(t, "Create")
 }
@@ -295,7 +296,7 @@ func TestRecipeService_UpdateRecipe_RequiresName(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrRecipeNameRequired, err)
+	assert.Equal(t, domain.ErrRecipeNameRequired, err)
 	setup.recipeRepo.AssertNotCalled(t, "GetByID")
 }
 
@@ -312,7 +313,7 @@ func TestRecipeService_UpdateRecipe_InvalidCategoryId(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrInvalidCategory, err)
+	assert.Equal(t, domain.ErrInvalidCategory, err)
 	setup.recipeRepo.AssertNotCalled(t, "GetByID")
 }
 
@@ -328,7 +329,7 @@ func TestRecipeService_UpdateRecipe_InvalidID(t *testing.T) {
 
 			assert.Error(t, err)
 			assert.Nil(t, result)
-			assert.Equal(t, ErrRecipeNotFound, err)
+			assert.Equal(t, domain.ErrRecipeNotFound, err)
 			setup.recipeRepo.AssertNotCalled(t, "GetByID")
 		})
 	}
@@ -345,7 +346,7 @@ func TestRecipeService_UpdateRecipe_RecipeNotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrRecipeNotFound, err)
+	assert.Equal(t, domain.ErrRecipeNotFound, err)
 	setup.recipeRepo.AssertExpectations(t)
 }
 
@@ -375,7 +376,7 @@ func TestRecipeService_DeleteRecipe_InvalidID(t *testing.T) {
 			err := setup.service.DeleteRecipe(id)
 
 			assert.Error(t, err)
-			assert.Equal(t, ErrRecipeNotFound, err)
+			assert.Equal(t, domain.ErrRecipeNotFound, err)
 			setup.recipeRepo.AssertNotCalled(t, "Delete")
 		})
 	}
@@ -390,7 +391,7 @@ func TestRecipeService_DeleteRecipe_NotFound(t *testing.T) {
 	err := setup.service.DeleteRecipe(recipeID)
 
 	assert.Error(t, err)
-	assert.Equal(t, ErrRecipeNotFound, err)
+	assert.Equal(t, domain.ErrRecipeNotFound, err)
 	setup.recipeRepo.AssertExpectations(t)
 }
 
@@ -485,7 +486,7 @@ func TestRecipeService_GetRecipeByIDWithIngredients_InvalidID(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrRecipeNotFound, err)
+	assert.Equal(t, domain.ErrRecipeNotFound, err)
 	setup.recipeRepo.AssertNotCalled(t, "GetByIDWithIngredients")
 }
 
@@ -498,7 +499,7 @@ func TestRecipeService_GetRecipeByIDWithIngredients_NotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrRecipeNotFound, err)
+	assert.Equal(t, domain.ErrRecipeNotFound, err)
 	setup.recipeRepo.AssertExpectations(t)
 }
 
@@ -531,7 +532,7 @@ func TestRecipeService_GetRecipesByCategoryWithIngredients_InvalidCategory(t *te
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrInvalidCategory, err)
+	assert.Equal(t, domain.ErrInvalidCategory, err)
 	setup.categoryRepo.AssertNotCalled(t, "Exists")
 }
 
@@ -574,13 +575,13 @@ func TestRecipeService_CreateRecipeWithIngredients_ValidationErrors(t *testing.T
 		{
 			name:          "empty_name",
 			request:       models.CreateRecipeWithIngredientsRequest{Name: "", CategoryID: 1},
-			expectedError: ErrRecipeNameRequired,
+			expectedError: domain.ErrRecipeNameRequired,
 			setupMocks:    func(setup *recipeServiceTestSetup) {}, // No mocks needed - fails before category check
 		},
 		{
 			name:          "invalid_category",
 			request:       models.CreateRecipeWithIngredientsRequest{Name: "Valid", CategoryID: 0},
-			expectedError: ErrInvalidCategory,
+			expectedError: domain.ErrInvalidCategory,
 			setupMocks:    func(setup *recipeServiceTestSetup) {}, // No mocks needed - fails on CategoryID <= 0
 		},
 		{
@@ -592,7 +593,7 @@ func TestRecipeService_CreateRecipeWithIngredients_ValidationErrors(t *testing.T
 					{IngredientID: 0, Quantity: 100.0, Unit: "grams"},
 				},
 			},
-			expectedError: ErrIngredientNotFound,
+			expectedError: domain.ErrIngredientNotFound,
 			setupMocks: func(setup *recipeServiceTestSetup) {
 				// Need to mock category exists since CategoryID: 1 is valid
 				setup.categoryRepo.On("Exists", 1).Return(true, nil)
@@ -607,7 +608,7 @@ func TestRecipeService_CreateRecipeWithIngredients_ValidationErrors(t *testing.T
 					{IngredientID: 1, Quantity: 0, Unit: "grams"},
 				},
 			},
-			expectedError: ErrInvalidQuantity,
+			expectedError: domain.ErrInvalidQuantity,
 			setupMocks: func(setup *recipeServiceTestSetup) {
 				// Need to mock category exists since CategoryID: 1 is valid
 				setup.categoryRepo.On("Exists", 1).Return(true, nil)
@@ -622,7 +623,7 @@ func TestRecipeService_CreateRecipeWithIngredients_ValidationErrors(t *testing.T
 					{IngredientID: 1, Quantity: 100.0, Unit: ""},
 				},
 			},
-			expectedError: ErrInvalidUnit,
+			expectedError: domain.ErrInvalidUnit,
 			setupMocks: func(setup *recipeServiceTestSetup) {
 				// Need to mock category exists since CategoryID: 1 is valid
 				setup.categoryRepo.On("Exists", 1).Return(true, nil)
@@ -690,7 +691,7 @@ func TestRecipeService_UpdateRecipeWithIngredients_InvalidID(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrRecipeNotFound, err)
+	assert.Equal(t, domain.ErrRecipeNotFound, err)
 	setup.recipeRepo.AssertNotCalled(t, "GetByID")
 }
 
@@ -736,7 +737,7 @@ func TestRecipeService_SearchRecipesByIngredients_InvalidIngredientID(t *testing
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrIngredientNotFound, err)
+	assert.Equal(t, domain.ErrIngredientNotFound, err)
 	setup.ingredientRepo.AssertNotCalled(t, "IngredientExists")
 }
 
@@ -751,7 +752,7 @@ func TestRecipeService_SearchRecipesByIngredients_IngredientNotFound(t *testing.
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrIngredientNotFound, err)
+	assert.Equal(t, domain.ErrIngredientNotFound, err)
 	setup.ingredientRepo.AssertExpectations(t)
 	setup.recipeRepo.AssertNotCalled(t, "SearchRecipesByIngredients")
 }

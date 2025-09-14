@@ -5,12 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"meal-prep/services/recipe-catalogue/domain"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"meal-prep/services/recipe-catalogue/handlers/mocks"
-	"meal-prep/services/recipe-catalogue/service"
 	"meal-prep/services/recipe-catalogue/service/testdata"
 	"meal-prep/shared/middleware"
 	"meal-prep/shared/models"
@@ -181,7 +181,7 @@ func TestIngredientHandler_GetIngredientByID_InvalidID(t *testing.T) {
 func TestIngredientHandler_GetIngredientByID_NotFound(t *testing.T) {
 	setup := setupIngredientHandlerTest()
 
-	setup.ingredientService.On("GetIngredientByID", 999).Return(nil, service.ErrIngredientNotFound)
+	setup.ingredientService.On("GetIngredientByID", 999).Return(nil, domain.ErrIngredientNotFound)
 
 	req := httptest.NewRequest("GET", "/ingredients/999", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "999"})
@@ -194,7 +194,7 @@ func TestIngredientHandler_GetIngredientByID_NotFound(t *testing.T) {
 	var response models.ErrorResponse
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 	assert.NoError(t, err)
-	assert.Equal(t, service.ErrIngredientNotFound.Error(), response.Message)
+	assert.Equal(t, domain.ErrIngredientNotFound.Error(), response.Message)
 
 	setup.ingredientService.AssertExpectations(t)
 }
@@ -288,12 +288,12 @@ func TestIngredientHandler_CreateIngredient_ValidationErrors(t *testing.T) {
 	}{
 		{
 			name:           "ingredient_name_required",
-			serviceError:   service.ErrIngredientNameRequired,
+			serviceError:   domain.ErrIngredientNameRequired,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "ingredient_exists",
-			serviceError:   service.ErrIngredientExists,
+			serviceError:   domain.ErrIngredientExists,
 			expectedStatus: http.StatusConflict,
 		},
 	}
@@ -429,7 +429,7 @@ func TestIngredientHandler_DeleteIngredient_Success(t *testing.T) {
 func TestIngredientHandler_DeleteIngredient_CannotDelete(t *testing.T) {
 	setup := setupIngredientHandlerTest()
 
-	setup.ingredientService.On("DeleteIngredient", 1).Return(service.ErrCannotDeleteIngredient)
+	setup.ingredientService.On("DeleteIngredient", 1).Return(domain.ErrCannotDeleteIngredient)
 
 	req := httptest.NewRequest("DELETE", "/ingredients/1", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
@@ -447,7 +447,7 @@ func TestIngredientHandler_DeleteIngredient_CannotDelete(t *testing.T) {
 	var response models.ErrorResponse
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 	assert.NoError(t, err)
-	assert.Equal(t, service.ErrCannotDeleteIngredient.Error(), response.Message)
+	assert.Equal(t, domain.ErrCannotDeleteIngredient.Error(), response.Message)
 
 	setup.ingredientService.AssertExpectations(t)
 }
@@ -547,22 +547,22 @@ func TestIngredientHandler_AddRecipeIngredient_ValidationErrors(t *testing.T) {
 	}{
 		{
 			name:           "recipe_not_found",
-			serviceError:   service.ErrRecipeNotFound,
+			serviceError:   domain.ErrRecipeNotFound,
 			expectedStatus: http.StatusNotFound,
 		},
 		{
 			name:           "ingredient_not_found",
-			serviceError:   service.ErrIngredientNotFound,
+			serviceError:   domain.ErrIngredientNotFound,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "invalid_quantity",
-			serviceError:   service.ErrInvalidQuantity,
+			serviceError:   domain.ErrInvalidQuantity,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "invalid_unit",
-			serviceError:   service.ErrInvalidUnit,
+			serviceError:   domain.ErrInvalidUnit,
 			expectedStatus: http.StatusBadRequest,
 		},
 	}

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"meal-prep/services/recipe-catalogue/domain"
 	"testing"
 
 	"meal-prep/services/recipe-catalogue/service/mocks"
@@ -97,7 +98,7 @@ func TestIngredientService_GetIngredientByID_InvalidID(t *testing.T) {
 
 			assert.Error(t, err)
 			assert.Nil(t, result)
-			assert.Equal(t, ErrIngredientNotFound, err)
+			assert.Equal(t, domain.ErrIngredientNotFound, err)
 			setup.ingredientRepo.AssertNotCalled(t, "GetIngredientByID")
 		})
 	}
@@ -112,7 +113,7 @@ func TestIngredientService_GetIngredientByID_NotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrIngredientNotFound, err)
+	assert.Equal(t, domain.ErrIngredientNotFound, err)
 	setup.ingredientRepo.AssertExpectations(t)
 }
 
@@ -231,12 +232,12 @@ func TestIngredientService_CreateIngredient_ValidationErrors(t *testing.T) {
 		{
 			name:          "empty_name",
 			request:       testdata.NewCreateIngredientRequestBuilder().WithName("").Build(),
-			expectedError: ErrIngredientNameRequired,
+			expectedError: domain.ErrIngredientNameRequired,
 		},
 		{
 			name:          "whitespace_name",
 			request:       testdata.NewCreateIngredientRequestBuilder().WithName("   ").Build(),
-			expectedError: ErrIngredientNameRequired,
+			expectedError: domain.ErrIngredientNameRequired,
 		},
 	}
 
@@ -304,7 +305,7 @@ func TestIngredientService_UpdateIngredient_InvalidID(t *testing.T) {
 
 			assert.Error(t, err)
 			assert.Nil(t, result)
-			assert.Equal(t, ErrIngredientNotFound, err)
+			assert.Equal(t, domain.ErrIngredientNotFound, err)
 			setup.ingredientRepo.AssertNotCalled(t, "GetIngredientByID")
 		})
 	}
@@ -321,7 +322,7 @@ func TestIngredientService_UpdateIngredient_NotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrIngredientNotFound, err)
+	assert.Equal(t, domain.ErrIngredientNotFound, err)
 	setup.ingredientRepo.AssertExpectations(t)
 }
 
@@ -340,14 +341,14 @@ func TestIngredientService_UpdateIngredient_ValidationErrors(t *testing.T) {
 			request: models.UpdateIngredientRequest{
 				Name: "",
 			},
-			expectedError: ErrIngredientNameRequired,
+			expectedError: domain.ErrIngredientNameRequired,
 		},
 		{
 			name: "whitespace_name",
 			request: models.UpdateIngredientRequest{
 				Name: "   ",
 			},
-			expectedError: ErrIngredientNameRequired,
+			expectedError: domain.ErrIngredientNameRequired,
 		},
 	}
 
@@ -394,7 +395,7 @@ func TestIngredientService_DeleteIngredient_InvalidID(t *testing.T) {
 			err := setup.service.DeleteIngredient(id)
 
 			assert.Error(t, err)
-			assert.Equal(t, ErrIngredientNotFound, err)
+			assert.Equal(t, domain.ErrIngredientNotFound, err)
 			setup.ingredientRepo.AssertNotCalled(t, "GetIngredientByID")
 		})
 	}
@@ -409,7 +410,7 @@ func TestIngredientService_DeleteIngredient_NotFound(t *testing.T) {
 	err := setup.service.DeleteIngredient(ingredientID)
 
 	assert.Error(t, err)
-	assert.Equal(t, ErrIngredientNotFound, err)
+	assert.Equal(t, domain.ErrIngredientNotFound, err)
 	setup.ingredientRepo.AssertExpectations(t)
 }
 
@@ -427,7 +428,7 @@ func TestIngredientService_DeleteIngredient_UsedInRecipes(t *testing.T) {
 	err := setup.service.DeleteIngredient(ingredientID)
 
 	assert.Error(t, err)
-	assert.Equal(t, ErrCannotDeleteIngredient, err)
+	assert.Equal(t, domain.ErrCannotDeleteIngredient, err)
 	setup.ingredientRepo.AssertExpectations(t)
 	setup.ingredientRepo.AssertNotCalled(t, "DeleteIngredient")
 }
@@ -463,7 +464,7 @@ func TestIngredientService_GetRecipeIngredients_InvalidRecipeID(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrRecipeNotFound, err)
+	assert.Equal(t, domain.ErrRecipeNotFound, err)
 	setup.recipeRepo.AssertNotCalled(t, "GetByID")
 }
 
@@ -477,7 +478,7 @@ func TestIngredientService_GetRecipeIngredients_RecipeNotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrRecipeNotFound, err)
+	assert.Equal(t, domain.ErrRecipeNotFound, err)
 	setup.recipeRepo.AssertExpectations(t)
 }
 
@@ -521,7 +522,7 @@ func TestIngredientService_AddRecipeIngredient_ValidationErrors(t *testing.T) {
 				Quantity:     100.0,
 				Unit:         "grams",
 			},
-			expectedError: ErrIngredientNotFound,
+			expectedError: domain.ErrIngredientNotFound,
 		},
 		{
 			name: "invalid_quantity",
@@ -530,7 +531,7 @@ func TestIngredientService_AddRecipeIngredient_ValidationErrors(t *testing.T) {
 				Quantity:     0,
 				Unit:         "grams",
 			},
-			expectedError: ErrInvalidQuantity,
+			expectedError: domain.ErrInvalidQuantity,
 		},
 		{
 			name: "empty_unit",
@@ -539,7 +540,7 @@ func TestIngredientService_AddRecipeIngredient_ValidationErrors(t *testing.T) {
 				Quantity:     100.0,
 				Unit:         "",
 			},
-			expectedError: ErrInvalidUnit,
+			expectedError: domain.ErrInvalidUnit,
 		},
 	}
 
@@ -562,7 +563,7 @@ func TestIngredientService_AddRecipeIngredient_InvalidRecipeID(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrRecipeNotFound, err)
+	assert.Equal(t, domain.ErrRecipeNotFound, err)
 	setup.recipeRepo.AssertNotCalled(t, "GetByID")
 }
 
@@ -579,7 +580,7 @@ func TestIngredientService_AddRecipeIngredient_IngredientNotFound(t *testing.T) 
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrIngredientNotFound, err)
+	assert.Equal(t, domain.ErrIngredientNotFound, err)
 	setup.recipeRepo.AssertExpectations(t)
 	setup.ingredientRepo.AssertExpectations(t)
 }
@@ -619,8 +620,8 @@ func TestIngredientService_UpdateRecipeIngredient_InvalidIDs(t *testing.T) {
 		ingredientID int
 		expectedErr  error
 	}{
-		{"invalid_recipe_id", 0, 1, ErrRecipeNotFound},
-		{"invalid_ingredient_id", 1, 0, ErrIngredientNotFound},
+		{"invalid_recipe_id", 0, 1, domain.ErrRecipeNotFound},
+		{"invalid_ingredient_id", 1, 0, domain.ErrIngredientNotFound},
 	}
 
 	for _, tc := range testCases {
@@ -663,8 +664,8 @@ func TestIngredientService_RemoveRecipeIngredient_InvalidIDs(t *testing.T) {
 		ingredientID int
 		expectedErr  error
 	}{
-		{"invalid_recipe_id", 0, 1, ErrRecipeNotFound},
-		{"invalid_ingredient_id", 1, 0, ErrIngredientNotFound},
+		{"invalid_recipe_id", 0, 1, domain.ErrRecipeNotFound},
+		{"invalid_ingredient_id", 1, 0, domain.ErrIngredientNotFound},
 	}
 
 	for _, tc := range testCases {
@@ -689,7 +690,7 @@ func TestIngredientService_RemoveRecipeIngredient_NotFound(t *testing.T) {
 	err := setup.service.RemoveRecipeIngredient(recipeID, ingredientID)
 
 	assert.Error(t, err)
-	assert.Equal(t, ErrIngredientNotFound, err)
+	assert.Equal(t, domain.ErrIngredientNotFound, err)
 	setup.recipeRepo.AssertExpectations(t)
 	setup.ingredientRepo.AssertExpectations(t)
 }
@@ -728,7 +729,7 @@ func TestIngredientService_SetRecipeIngredients_InvalidRecipeID(t *testing.T) {
 	err := setup.service.SetRecipeIngredients(0, ingredients)
 
 	assert.Error(t, err)
-	assert.Equal(t, ErrRecipeNotFound, err)
+	assert.Equal(t, domain.ErrRecipeNotFound, err)
 	setup.recipeRepo.AssertNotCalled(t, "GetByID")
 }
 
@@ -761,7 +762,7 @@ func TestIngredientService_GetRecipesUsingIngredient_InvalidID(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrIngredientNotFound, err)
+	assert.Equal(t, domain.ErrIngredientNotFound, err)
 	setup.ingredientRepo.AssertNotCalled(t, "GetIngredientByID")
 }
 
@@ -775,7 +776,7 @@ func TestIngredientService_GetRecipesUsingIngredient_IngredientNotFound(t *testi
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, ErrIngredientNotFound, err)
+	assert.Equal(t, domain.ErrIngredientNotFound, err)
 	setup.ingredientRepo.AssertExpectations(t)
 }
 

@@ -5,12 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"meal-prep/services/recipe-catalogue/domain"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"meal-prep/services/recipe-catalogue/handlers/mocks"
-	"meal-prep/services/recipe-catalogue/service"
 	"meal-prep/services/recipe-catalogue/service/testdata"
 	"meal-prep/shared/middleware"
 	"meal-prep/shared/models"
@@ -140,7 +140,7 @@ func TestRecipeHandler_GetRecipeByID_InvalidID(t *testing.T) {
 func TestRecipeHandler_GetRecipeByID_NotFound(t *testing.T) {
 	setup := setupRecipeHandlerTest()
 
-	setup.recipeService.On("GetRecipeByID", 999).Return(nil, service.ErrRecipeNotFound)
+	setup.recipeService.On("GetRecipeByID", 999).Return(nil, domain.ErrRecipeNotFound)
 
 	req := httptest.NewRequest("GET", "/recipes/999", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "999"})
@@ -153,7 +153,7 @@ func TestRecipeHandler_GetRecipeByID_NotFound(t *testing.T) {
 	var response models.ErrorResponse
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 	assert.NoError(t, err)
-	assert.Equal(t, service.ErrRecipeNotFound.Error(), response.Message)
+	assert.Equal(t, domain.ErrRecipeNotFound.Error(), response.Message)
 
 	setup.recipeService.AssertExpectations(t)
 }
@@ -208,7 +208,7 @@ func TestRecipeHandler_GetRecipesByCategory_InvalidCategoryID(t *testing.T) {
 func TestRecipeHandler_GetRecipesByCategory_CategoryNotFound(t *testing.T) {
 	setup := setupRecipeHandlerTest()
 
-	setup.recipeService.On("GetRecipesByCategory", 999).Return(nil, service.ErrCategoryNotFound)
+	setup.recipeService.On("GetRecipesByCategory", 999).Return(nil, domain.ErrCategoryNotFound)
 
 	req := httptest.NewRequest("GET", "/categories/999/recipes", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "999"})
@@ -221,7 +221,7 @@ func TestRecipeHandler_GetRecipesByCategory_CategoryNotFound(t *testing.T) {
 	var response models.ErrorResponse
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 	assert.NoError(t, err)
-	assert.Equal(t, service.ErrCategoryNotFound.Error(), response.Message)
+	assert.Equal(t, domain.ErrCategoryNotFound.Error(), response.Message)
 
 	setup.recipeService.AssertExpectations(t)
 }
@@ -316,17 +316,17 @@ func TestRecipeHandler_CreateRecipe_ValidationErrors(t *testing.T) {
 	}{
 		{
 			name:           "recipe_name_required",
-			serviceError:   service.ErrRecipeNameRequired,
+			serviceError:   domain.ErrRecipeNameRequired,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "category_not_found",
-			serviceError:   service.ErrCategoryNotFound,
+			serviceError:   domain.ErrCategoryNotFound,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "invalid_category",
-			serviceError:   service.ErrInvalidCategory,
+			serviceError:   domain.ErrInvalidCategory,
 			expectedStatus: http.StatusBadRequest,
 		},
 	}
@@ -467,7 +467,7 @@ func TestRecipeHandler_UpdateRecipe_RecipeNotFound(t *testing.T) {
 	request := models.UpdateRecipeRequest{Name: "Updated"}
 
 	setup.recipeService.On("UpdateRecipe", 999, mock.AnythingOfType("models.UpdateRecipeRequest")).
-		Return(nil, service.ErrRecipeNotFound)
+		Return(nil, domain.ErrRecipeNotFound)
 
 	requestBody, _ := json.Marshal(request)
 	req := httptest.NewRequest("PUT", "/recipes/999", bytes.NewBuffer(requestBody))
@@ -488,7 +488,7 @@ func TestRecipeHandler_UpdateRecipe_RecipeNotFound(t *testing.T) {
 	var response models.ErrorResponse
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 	assert.NoError(t, err)
-	assert.Equal(t, service.ErrRecipeNotFound.Error(), response.Message)
+	assert.Equal(t, domain.ErrRecipeNotFound.Error(), response.Message)
 
 	setup.recipeService.AssertExpectations(t)
 }
@@ -552,7 +552,7 @@ func TestRecipeHandler_DeleteRecipe_InvalidID(t *testing.T) {
 func TestRecipeHandler_DeleteRecipe_NotFound(t *testing.T) {
 	setup := setupRecipeHandlerTest()
 
-	setup.recipeService.On("DeleteRecipe", 999).Return(service.ErrRecipeNotFound)
+	setup.recipeService.On("DeleteRecipe", 999).Return(domain.ErrRecipeNotFound)
 
 	req := httptest.NewRequest("DELETE", "/recipes/999", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "999"})
@@ -571,7 +571,7 @@ func TestRecipeHandler_DeleteRecipe_NotFound(t *testing.T) {
 	var response models.ErrorResponse
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 	assert.NoError(t, err)
-	assert.Equal(t, service.ErrRecipeNotFound.Error(), response.Message)
+	assert.Equal(t, domain.ErrRecipeNotFound.Error(), response.Message)
 
 	setup.recipeService.AssertExpectations(t)
 }
