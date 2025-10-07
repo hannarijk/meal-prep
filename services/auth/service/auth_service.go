@@ -4,9 +4,10 @@ import (
 	"errors"
 	"meal-prep/services/auth/repository"
 	"meal-prep/shared/models"
-	"meal-prep/shared/utils"
 
 	"golang.org/x/crypto/bcrypt"
+
+	"meal-prep/services/auth/internal/jwt"
 )
 
 var (
@@ -21,11 +22,20 @@ type AuthService interface {
 }
 
 type authService struct {
-	userRepo repository.UserRepository
+	userRepo     repository.UserRepository
+	jwtGenerator *jwt.Generator
 }
 
 func NewAuthService(userRepo repository.UserRepository) AuthService {
-	return &authService{userRepo: userRepo}
+	jwtConfig, err := jwt.LoadConfig()
+	if err != nil {
+		panic("Failed to load JWT config: " + err.Error())
+	}
+
+	return &authService{
+		userRepo:     userRepo,
+		jwtGenerator: jwt.NewGenerator(jwtConfig),
+	}
 }
 
 func (s *authService) Register(email, password string) (*models.AuthResponse, error) {
@@ -51,7 +61,7 @@ func (s *authService) Register(email, password string) (*models.AuthResponse, er
 		return nil, err
 	}
 
-	token, err := utils.GenerateJWT(user.ID, user.Email)
+	token, err := s.jwtGenerator.Generate(user.ID, user.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +83,7 @@ func (s *authService) Login(email, password string) (*models.AuthResponse, error
 		return nil, ErrInvalidCredentials
 	}
 
-	token, err := utils.GenerateJWT(user.ID, user.Email)
+	token, err := s.jwtGenerator.Generate(user.ID, user.Email)
 	if err != nil {
 		return nil, err
 	}

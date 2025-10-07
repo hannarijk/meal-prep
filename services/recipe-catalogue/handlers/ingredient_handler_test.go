@@ -2,19 +2,17 @@ package handlers
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"meal-prep/services/recipe-catalogue/domain"
+	"meal-prep/services/recipe-catalogue/test"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"meal-prep/services/recipe-catalogue/handlers/mocks"
 	"meal-prep/services/recipe-catalogue/service/testdata"
-	"meal-prep/shared/middleware"
 	"meal-prep/shared/models"
-	"meal-prep/shared/utils"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -208,17 +206,15 @@ func TestIngredientHandler_CreateIngredient_Success(t *testing.T) {
 	request := testdata.ValidCreateIngredientRequest()
 	expectedIngredient := testdata.NewIngredientBuilder().WithName(request.Name).BuildPtr()
 
-	setup.ingredientService.On("CreateIngredient", mock.AnythingOfType("models.CreateIngredientRequest")).
+	setup.ingredientService.
+		On("CreateIngredient", mock.AnythingOfType("models.CreateIngredientRequest")).
 		Return(expectedIngredient, nil)
 
 	requestBody, _ := json.Marshal(request)
 	req := httptest.NewRequest("POST", "/ingredients", bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
-
 	// Add authenticated user to context
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
@@ -261,10 +257,8 @@ func TestIngredientHandler_CreateIngredient_InvalidJSON(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/ingredients", bytes.NewBufferString(`{"name":"test","invalid":}`))
 	req.Header.Set("Content-Type", "application/json")
-
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	// Add authenticated user to context
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
@@ -309,10 +303,8 @@ func TestIngredientHandler_CreateIngredient_ValidationErrors(t *testing.T) {
 			requestBody, _ := json.Marshal(request)
 			req := httptest.NewRequest("POST", "/ingredients", bytes.NewBuffer(requestBody))
 			req.Header.Set("Content-Type", "application/json")
-
-			claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-			ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-			req = req.WithContext(ctx)
+			// Add authenticated user to context
+			req = test.AddAuthContext(req, 1, "test@example.com")
 
 			recorder := httptest.NewRecorder()
 
@@ -350,10 +342,8 @@ func TestIngredientHandler_UpdateIngredient_Success(t *testing.T) {
 	req := httptest.NewRequest("PUT", "/ingredients/1", bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
-
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	// Add authenticated user to context
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
@@ -377,10 +367,8 @@ func TestIngredientHandler_UpdateIngredient_InvalidID(t *testing.T) {
 	req := httptest.NewRequest("PUT", "/ingredients/invalid", bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = mux.SetURLVars(req, map[string]string{"id": "invalid"})
-
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	// Add authenticated user to context
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
@@ -407,10 +395,8 @@ func TestIngredientHandler_DeleteIngredient_Success(t *testing.T) {
 
 	req := httptest.NewRequest("DELETE", "/ingredients/1", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
-
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	// Add authenticated user to context
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
@@ -433,10 +419,8 @@ func TestIngredientHandler_DeleteIngredient_CannotDelete(t *testing.T) {
 
 	req := httptest.NewRequest("DELETE", "/ingredients/1", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
-
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	// Add authenticated user to context
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
@@ -511,20 +495,20 @@ func TestIngredientHandler_GetRecipeIngredients_Success(t *testing.T) {
 
 func TestIngredientHandler_AddRecipeIngredient_Success(t *testing.T) {
 	setup := setupIngredientHandlerTest()
-	request := testdata.ValidAddRecipeIngredientRequest()
-	expectedRecipeIngredient := testdata.NewRecipeIngredientBuilder().BuildPtr()
 
-	setup.ingredientService.On("AddRecipeIngredient", 1, mock.AnythingOfType("models.AddRecipeIngredientRequest")).
+	expectedRecipeIngredient := testdata.NewRecipeIngredientBuilder().BuildPtr()
+	setup.ingredientService.
+		On("AddRecipeIngredient", 1, mock.AnythingOfType("models.AddRecipeIngredientRequest")).
 		Return(expectedRecipeIngredient, nil)
 
+	request := testdata.ValidAddRecipeIngredientRequest()
 	requestBody, _ := json.Marshal(request)
+
 	req := httptest.NewRequest("POST", "/recipes/1/ingredients", bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
-
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	// Add authenticated user to context
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
@@ -579,10 +563,8 @@ func TestIngredientHandler_AddRecipeIngredient_ValidationErrors(t *testing.T) {
 			req := httptest.NewRequest("POST", "/recipes/1/ingredients", bytes.NewBuffer(requestBody))
 			req.Header.Set("Content-Type", "application/json")
 			req = mux.SetURLVars(req, map[string]string{"id": "1"})
-
-			claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-			ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-			req = req.WithContext(ctx)
+			// Add authenticated user to context
+			req = test.AddAuthContext(req, 1, "test@example.com")
 
 			recorder := httptest.NewRecorder()
 
@@ -623,10 +605,8 @@ func TestIngredientHandler_GenerateShoppingList_Success(t *testing.T) {
 	requestBody, _ := json.Marshal(request)
 	req := httptest.NewRequest("POST", "/shopping-list", bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
-
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	// Add authenticated user to context
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
@@ -650,10 +630,8 @@ func TestIngredientHandler_GenerateShoppingList_EmptyRecipeList(t *testing.T) {
 	requestBody, _ := json.Marshal(request)
 	req := httptest.NewRequest("POST", "/shopping-list", bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
-
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	// Add authenticated user to context
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 

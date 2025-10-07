@@ -12,9 +12,70 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+func TestAuthService_MissingJWTConfig(t *testing.T) {
+	mockRepo := new(mocks.MockUserRepository)
+
+	assert.Panics(t, func() {
+		NewAuthService(mockRepo)
+	}, "Should panic when JWT config missing")
+}
+
+// Specifically test that JWT generator works
+func TestAuthService_TokenGeneration(t *testing.T) {
+	setupTestJWTEnv(t) // ← FIX: Added missing JWT setup
+
+	// Arrange
+	mockRepo := new(mocks.MockUserRepository)
+	mockRepo.On("EmailExists", "test@example.com").Return(false, nil)
+	mockRepo.On("Create", "test@example.com", mock.AnythingOfType("string")).Return(
+		&models.User{
+			ID:        1,
+			Email:     "test@example.com",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}, nil)
+
+	service := NewAuthService(mockRepo)
+
+	// Act
+	result, err := service.Register("test@example.com", "password")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.NotEmpty(t, result.Token)
+	assert.Contains(t, result.Token, ".")
+
+	mockRepo.AssertExpectations(t)
+}
+
+func TestAuthService_TokenUniqueness(t *testing.T) {
+	setupTestJWTEnv(t)
+
+	// Arrange
+	mockRepo := new(mocks.MockUserRepository)
+	mockRepo.On("EmailExists", "user1@example.com").Return(false, nil)
+	mockRepo.On("Create", "user1@example.com", mock.AnythingOfType("string")).Return(
+		&models.User{ID: 1, Email: "user1@example.com", CreatedAt: time.Now(), UpdatedAt: time.Now()}, nil)
+
+	mockRepo.On("EmailExists", "user2@example.com").Return(false, nil)
+	mockRepo.On("Create", "user2@example.com", mock.AnythingOfType("string")).Return(
+		&models.User{ID: 2, Email: "user2@example.com", CreatedAt: time.Now(), UpdatedAt: time.Now()}, nil)
+
+	service := NewAuthService(mockRepo)
+
+	// Act
+	result1, _ := service.Register("user1@example.com", "password")
+	result2, _ := service.Register("user2@example.com", "password")
+
+	// Assert
+	assert.NotEqual(t, result1.Token, result2.Token)
+
+	mockRepo.AssertExpectations(t)
+}
+
 func TestAuthService_Register(t *testing.T) {
-	// Set JWT_SECRET for all subtests
-	t.Setenv("JWT_SECRET", "overridden-for-tests")
+	setupTestJWTEnv(t)
 
 	tests := []struct {
 		name          string
@@ -115,8 +176,8 @@ func TestAuthService_Register(t *testing.T) {
 }
 
 func TestAuthService_Login(t *testing.T) {
-	// Set JWT_SECRET for all subtests
-	t.Setenv("JWT_SECRET", "overridden-for-tests")
+	setupTestJWTEnv(t)
+
 	// Create test password hash
 	testPassword := "password123"
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(testPassword), bcrypt.DefaultCost)
@@ -202,10 +263,8 @@ func TestAuthService_Login(t *testing.T) {
 	}
 }
 
-// Test helper functions
 func TestAuthService_validateInput(t *testing.T) {
-	// Set JWT_SECRET for all subtests
-	t.Setenv("JWT_SECRET", "overridden-for-tests")
+	setupTestJWTEnv(t)
 
 	tests := []struct {
 		name      string
@@ -237,4 +296,15 @@ func TestAuthService_validateInput(t *testing.T) {
 			}
 		})
 	}
+}
+
+// =============================================================================
+// TEST HELPERS
+// =============================================================================
+
+func setupTestJWTEnv(t *testing.T) {
+	t.Helper()
+	t.Setenv("JWT_SECRET", "test-secret-for-auth-tests")
+	t.Setenv("JWT_ISSUER", "meal-prep-auth")
+	t.Setenv("JWT_AUDIENCE", "meal-prep-api")
 }

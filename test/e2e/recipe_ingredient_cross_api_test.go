@@ -3,16 +3,14 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
-
 	"meal-prep/services/recipe-catalogue/handlers"
 	"meal-prep/services/recipe-catalogue/repository"
 	"meal-prep/services/recipe-catalogue/service"
 	"meal-prep/shared/middleware"
 	"meal-prep/test/helpers"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +26,6 @@ type RecipeIngredientsE2ETestSuite struct {
 }
 
 func (suite *RecipeIngredientsE2ETestSuite) SetupSuite() {
-	suite.T().Setenv("JWT_SECRET", "testsecret")
 	helpers.SuppressTestLogs()
 
 	// Setup real database with testcontainers
@@ -61,7 +58,7 @@ func (suite *RecipeIngredientsE2ETestSuite) SetupSuite() {
 
 	// Protected routes
 	protected := router.PathPrefix("").Subrouter()
-	protected.Use(middleware.AuthMiddleware)
+	protected.Use(middleware.ExtractUserFromGatewayHeaders)
 	protected.HandleFunc("/recipes", recipeHandler.CreateRecipe).Methods("POST")
 	protected.HandleFunc("/recipes/{id:[0-9]+}", recipeHandler.UpdateRecipe).Methods("PUT")
 	protected.HandleFunc("/recipes/{id:[0-9]+}", recipeHandler.DeleteRecipe).Methods("DELETE")
@@ -83,8 +80,11 @@ func (suite *RecipeIngredientsE2ETestSuite) SetupSuite() {
 	suite.server = httptest.NewServer(router)
 
 	// Setup authenticated HTTP client
-	authToken := helpers.GenerateTestJWT(42, "test@example.com")
-	suite.testHttpClient = helpers.NewTestHttpClient(&http.Client{Timeout: 10 * time.Second}, authToken)
+	suite.testHttpClient = helpers.NewTestHttpClient(
+		suite.server.Client(),
+		42,                 // Test user ID
+		"test@example.com", // Test email
+	)
 }
 
 func (suite *RecipeIngredientsE2ETestSuite) TearDownSuite() {
@@ -189,6 +189,14 @@ func (suite *RecipeIngredientsE2ETestSuite) seedTestData() {
 // RECIPE CREATION WITH INGREDIENT SEARCH SCENARIO
 // =============================================================================
 
+// 1. User creates recipe "Honey Garlic Chicken"
+// 2. User searches for "chicken" → finds Chicken Breast
+// 3. User searches for "garlic" → finds Garlic
+// 4. User searches for "oil" → finds Olive Oil
+// 5. User adds all 3 ingredients with quantities
+// 6. User verifies recipe has all ingredients
+// 7. User tests search edge cases (partial, case-insensitive)
+// 8. User checks that recipe appears in ingredient usage lists
 func (suite *RecipeIngredientsE2ETestSuite) TestCreateRecipeWithIngredientSearch_CompleteUserJourney() {
 	baseURL := suite.server.URL
 

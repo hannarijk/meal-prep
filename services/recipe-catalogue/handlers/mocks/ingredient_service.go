@@ -1,8 +1,9 @@
 package mocks
 
 import (
-	"github.com/stretchr/testify/mock"
 	"meal-prep/shared/models"
+
+	"github.com/stretchr/testify/mock"
 )
 
 // MockIngredientService mocks the ingredient service interface

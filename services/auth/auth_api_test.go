@@ -1,4 +1,4 @@
-package e2e
+package main
 
 import (
 	"bytes"
@@ -27,7 +27,9 @@ type AuthE2ETestSuite struct {
 }
 
 func (suite *AuthE2ETestSuite) SetupSuite() {
-	suite.T().Setenv("JWT_SECRET", "testsecret")
+	suite.T().Setenv("JWT_SECRET", "test-secret-for-e2e-tests")
+	suite.T().Setenv("JWT_ISSUER", "meal-prep-auth")
+	suite.T().Setenv("JWT_AUDIENCE", "meal-prep-api")
 
 	helpers.SuppressTestLogs()
 
@@ -198,9 +200,5 @@ func (suite *AuthE2ETestSuite) makeRequest(method, url string, payload interface
 }
 
 func TestAuthE2E(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping E2E tests in short mode")
-	}
-
 	suite.Run(t, new(AuthE2ETestSuite))
 }

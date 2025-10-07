@@ -15,13 +15,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// TODO: API Gateway Migration Checklist
-// When implementing API Gateway:
-// 1. Set ENABLE_CORS=false in production environment
-// 2. Remove CORS middleware from all services
-// 3. Configure CORS at API Gateway level
-// 4. Update frontend VITE_API_BASE_URL to point to gateway
-// 5. Remove this comment block
 func main() {
 	// Initialize logging first
 	logging.Init("auth-service")
@@ -48,16 +41,11 @@ func main() {
 	// Routes with logging middleware
 	router := mux.NewRouter()
 
-	// CORS - only for local development (API Gateway will handle this in production)
-	if os.Getenv("ENABLE_CORS") == "true" {
-		router.Use(middleware.CORSMiddleware)
-	}
-
 	router.Use(middleware.LoggingMiddleware("auth-service"))
 
-	router.HandleFunc("/register", authHandler.Register).Methods("POST", "OPTIONS")
-	router.HandleFunc("/login", authHandler.Login).Methods("POST", "OPTIONS")
-	router.HandleFunc("/health", healthCheck).Methods("GET", "OPTIONS")
+	router.HandleFunc("/register", authHandler.Register).Methods("POST")
+	router.HandleFunc("/login", authHandler.Login).Methods("POST")
+	router.HandleFunc("/health", healthCheck).Methods("GET")
 
 	port := os.Getenv("AUTH_PORT")
 	if port == "" {

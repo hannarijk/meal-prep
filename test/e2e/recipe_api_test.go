@@ -3,16 +3,14 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
-
 	"meal-prep/services/recipe-catalogue/handlers"
 	"meal-prep/services/recipe-catalogue/repository"
 	"meal-prep/services/recipe-catalogue/service"
 	"meal-prep/shared/middleware"
 	"meal-prep/test/helpers"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -27,7 +25,6 @@ type RecipeE2ETestSuite struct {
 }
 
 func (suite *RecipeE2ETestSuite) SetupSuite() {
-	suite.T().Setenv("JWT_SECRET", "testsecret")
 	helpers.SuppressTestLogs()
 
 	// Setup real database
@@ -53,7 +50,7 @@ func (suite *RecipeE2ETestSuite) SetupSuite() {
 
 	// Protected recipe routes
 	protected := router.PathPrefix("").Subrouter()
-	protected.Use(middleware.AuthMiddleware)
+	protected.Use(middleware.ExtractUserFromGatewayHeaders)
 	protected.HandleFunc("/recipes", recipeHandler.CreateRecipe).Methods("POST")
 	protected.HandleFunc("/recipes/{id:[0-9]+}", recipeHandler.UpdateRecipe).Methods("PUT")
 	protected.HandleFunc("/recipes/{id:[0-9]+}", recipeHandler.DeleteRecipe).Methods("DELETE")
@@ -67,9 +64,11 @@ func (suite *RecipeE2ETestSuite) SetupSuite() {
 	suite.server = httptest.NewServer(router)
 
 	// Generate auth token for protected tests
-	authToken := helpers.GenerateTestJWT(42, "test@example.com")
-
-	suite.testHttpClient = helpers.NewTestHttpClient(&http.Client{Timeout: 10 * time.Second}, authToken)
+	suite.testHttpClient = helpers.NewTestHttpClient(
+		suite.server.Client(),
+		42,                 // Test user ID
+		"test@example.com", // Test email
+	)
 }
 
 func (suite *RecipeE2ETestSuite) TearDownSuite() {
@@ -554,7 +553,7 @@ func (suite *RecipeE2ETestSuite) TestRecipeOperations_AuthenticationRequired() {
 			var errorResponse map[string]interface{}
 			err := json.NewDecoder(resp.Body).Decode(&errorResponse)
 			assert.NoError(t, err)
-			assert.Contains(t, errorResponse["message"].(string), "Authorization header required")
+			assert.Contains(t, errorResponse["message"].(string), "Missing user context")
 		})
 	}
 }

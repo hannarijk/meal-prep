@@ -1,10 +1,38 @@
-version: '3.8'
-
 services:
+  # ============================================
+  # KONG API GATEWAY (Development Mode)
+  # ============================================
+  kong:
+    image: kong:3.7
+    container_name: mealprep-kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /kong/kong.yml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+      KONG_LOG_LEVEL: debug
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production}
+    ports:
+      - "8000:8000"  # API Gateway (your frontend will use this)
+      - "8444:8001"  # Admin API (for debugging)
+    volumes:
+      - ./kong.yml:/kong/kong.yml:ro
+    networks:
+      - mealprep-network
+    depends_on:
+      - auth-service
+      - recipe-service
+      - recommendations-service
+
+  # ============================================
+  # POSTGRES
+  # ============================================
   postgres:
     image: postgres:15-alpine
     container_name: mealprep-postgres
-    restart: unless-stopped
     environment:
       POSTGRES_DB: mealprep
       POSTGRES_USER: postgres
@@ -21,6 +49,21 @@ services:
       timeout: 5s
       retries: 5
 
+  # ============================================
+  # REDIS
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: mealprep-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - mealprep-network
+    command: redis-server --appendonly yes
+
+  # ============================================
+  # AUTH SERVICE
+  # ============================================
   auth-service:
     build:
       context: .
@@ -33,31 +76,30 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres123
       DB_NAME: mealprep
-      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production}
       AUTH_PORT: 8001
-      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_LEVEL: debug
       LOG_FORMAT: ${LOG_FORMAT:-json}
       LOG_FILE: /app/logs/auth.log
     volumes:
       - ./logs:/app/logs
     ports:
-      - "8001:8001"
+      - "8001:8001"  # Exposed for direct testing if needed
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - mealprep-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
-  recipe-catalogue-service:
+  # ============================================
+  # RECIPE CATALOGUE SERVICE
+  # ============================================
+  recipe-service:
     build:
       context: .
       dockerfile: Dockerfile.recipe-catalogue
-    container_name: mealprep-recipe-catalogue
+    container_name: mealprep-recipe
     restart: unless-stopped
     environment:
       DB_HOST: postgres
@@ -65,25 +107,24 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres123
       DB_NAME: mealprep
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production}
       RECIPE_CATALOGUE_PORT: 8002
-      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_LEVEL: debug
       LOG_FORMAT: ${LOG_FORMAT:-json}
-      LOG_FILE: /app/logs/recipe-catalogue.log
+      LOG_FILE: /app/logs/recipe.log
     volumes:
       - ./logs:/app/logs
     ports:
-      - "8002:8002"
+      - "8002:8002"  # Exposed for direct testing if needed
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - mealprep-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8002/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
+  # ============================================
+  # RECOMMENDATIONS SERVICE
+  # ============================================
   recommendations-service:
     build:
       context: .
@@ -96,25 +137,20 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres123
       DB_NAME: mealprep
-      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production}
       RECOMMENDATIONS_PORT: 8003
-      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_LEVEL: debug
       LOG_FORMAT: ${LOG_FORMAT:-json}
       LOG_FILE: /app/logs/recommendations.log
     volumes:
       - ./logs:/app/logs
     ports:
-      - "8003:8003"
+      - "8003:8003"  # Exposed for direct testing if needed
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - mealprep-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8003/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   # -------------------------------
   # Flyway migration runners
@@ -179,3 +215,21 @@ volumes:
 networks:
   mealprep-network:
     driver: bridge
+
+# ============================================
+# DEVELOPMENT NOTES:
+# ============================================
+#
+# Access Points:
+# - Kong Gateway: http://localhost:8000 (use this!)
+# - Kong Admin: http://localhost:8001 (for debugging)
+# - Auth Direct: http://localhost:8001 (if needed)
+# - Recipe Direct: http://localhost:8002 (if needed)
+# - Recs Direct: http://localhost:8003 (if needed)
+#
+# Services are exposed on their ports for:
+# - Direct testing if Kong has issues
+# - Debugging
+# - Running services outside Docker
+#
+# In production, only Kong port would be exposed!

@@ -1,0 +1,244 @@
+_format_version: "3.0"
+
+# ============================================
+# SERVICES (Backend Microservices)
+# ============================================
+
+services:
+  - name: auth-service
+    url: http://auth-service:8001
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    retries: 3
+
+  - name: recipe-service
+    url: http://recipe-service:8002
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    retries: 3
+
+  - name: recommendations-service
+    url: http://recommendations-service:8003
+    connect_timeout: 5000
+    write_timeout: 5000
+    read_timeout: 5000
+    retries: 3
+
+# ============================================
+# ROUTES
+# ============================================
+
+routes:
+  # ==========================================
+  # AUTH SERVICE
+  # ==========================================
+  # One route for all auth endpoints
+
+  - name: auth-routes
+    service: auth-service
+    paths:
+      - /auth
+    strip_path: true
+    # /auth/login → auth-service/login ✓
+    # /auth/register → auth-service/register ✓
+    # /auth/refresh → auth-service/refresh ✓
+    # /auth/verify → auth-service/verify ✓
+
+  # ==========================================
+  # RECIPE SERVICE - Public (No Auth)
+  # ==========================================
+
+  - name: recipes-public
+    service: recipe-service
+    paths:
+      - /recipes
+      - /categories
+      - /ingredients
+    methods:
+      - GET
+      - OPTIONS
+    strip_path: false
+
+  # ==========================================
+  # RECIPE SERVICE - Protected (Auth Required)
+  # ==========================================
+
+  - name: recipes-protected
+    service: recipe-service
+    paths:
+      - /recipes
+      - /ingredients
+      - /shopping-list
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          header_names:
+            - Authorization
+          claims_to_verify:
+            - exp
+            - nbf
+      - name: rate-limiting
+        config:
+          minute: 100
+          hour: 5000
+          policy: local
+          fault_tolerant: true
+
+  # ==========================================
+  # RECOMMENDATIONS SERVICE - Protected (Auth Required)
+  # ==========================================
+
+  - name: recommendations-routes
+    service: recommendations-service
+    paths:
+      - /recommendations
+      - /preferences
+      - /cooking
+    strip_path: false
+    plugins:
+      - name: jwt
+        config:
+          header_names:
+            - Authorization
+          claims_to_verify:
+            - exp
+            - nbf
+      - name: rate-limiting
+        config:
+          minute: 50
+          hour: 2000
+          policy: local
+          fault_tolerant: true
+
+# ============================================
+# GLOBAL PLUGINS
+# ============================================
+
+plugins:
+  # CORS - Allow frontend origins
+  - name: cors
+    config:
+      origins:
+        - http://localhost:3000
+        - http://localhost:5173
+        - http://localhost:8080
+        - https://yourdomain.com  # Add your production domain
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - PATCH
+        - OPTIONS
+      headers:
+        - Authorization
+        - Content-Type
+        - X-Request-ID
+      exposed_headers:
+        - X-Request-ID
+      credentials: true
+      max_age: 3600
+
+  # Request ID for distributed tracing
+  - name: correlation-id
+    config:
+      header_name: X-Request-ID
+      generator: uuid
+      echo_downstream: true
+
+  # Logging (structured JSON)
+  - name: file-log
+    config:
+      path: /dev/stdout
+      reopen: true
+
+# ============================================
+# JWT CONFIGURATION
+# ============================================
+
+consumers:
+  - username: meal-prep-app
+    jwt_secrets:
+      - key: meal-prep-auth
+        algorithm: HS256
+        secret: your-super-secret-jwt-key-change-this-in-production # ${{JWT_SECRET}}
+        # Environment variable from docker-compose.yml
+
+# ============================================
+# BEST PRACTICES EXPLAINED
+# ============================================
+#
+# 1. SERVICE ORGANIZATION:
+#    - Each microservice = one Kong service
+#    - Clear naming: auth-service, recipe-service, etc.
+#    - Proper timeouts and retries configured
+#
+# 2. ROUTE DESIGN:
+#    - Group related endpoints (one /auth route, not many)
+#    - Separate public vs protected routes
+#    - Use strip_path wisely:
+#      * true: /api/recipes → /recipes (strip prefix)
+#      * false: /recipes → /recipes (keep as-is)
+#
+# 3. SECURITY:
+#    - JWT validation on protected routes
+#    - Rate limiting (different limits per service)
+#    - CORS properly configured
+#    - Request IDs for tracing
+#
+# 4. PLUGIN STRATEGY:
+#    - Route-level plugins: JWT, rate-limiting (specific)
+#    - Global plugins: CORS, logging (everything)
+#    - request-transformer: Add headers for services
+#
+# 5. MAINTAINABILITY:
+#    - Logical grouping
+#    - Easy to add new routes
+#
+# ============================================
+# ROUTE MAPPING REFERENCE
+# ============================================
+#
+# PUBLIC (No Auth):
+#   GET /recipes                → recipe-service/recipes
+#   GET /recipes/{id}           → recipe-service/recipes/{id}
+#   GET /categories             → recipe-service/categories
+#   GET /ingredients            → recipe-service/ingredients
+#
+# AUTH:
+#   POST /auth/login            → auth-service/login
+#   POST /auth/register         → auth-service/register
+#   POST /auth/refresh          → auth-service/refresh
+#   GET  /auth/verify           → auth-service/verify
+#
+# PROTECTED (JWT Required):
+#   POST   /recipes         → recipe-service/recipes
+#   PUT    /recipes/{id}    → recipe-service/recipes/{id}
+#   DELETE /recipes/{id}    → recipe-service/recipes/{id}
+#   POST   /ingredients     → recipe-service/ingredients
+#   POST   /shopping-list   → recipe-service/shopping-list
+#   GET    /recommendations → recommendations-service/recommendations
+#   GET    /preferences     → recommendations-service/preferences
+#   PUT    /preferences     → recommendations-service/preferences
+#   POST   /cooking         → recommendations-service/cooking
+#
+# ============================================
+# PRODUCTION CHECKLIST
+# ============================================
+#
+# Before deploying to production:
+# [ ] Update JWT secret (use env var or vault)
+# [ ] Add production domain to CORS origins
+# [ ] Adjust rate limits based on load testing
+# [ ] Enable metrics (Prometheus plugin)
+# [ ] Set up health checks (upstreams)
+# [ ] Configure SSL/TLS
+# [ ] Review timeouts based on service SLAs
+# [ ] Enable request/response size limits
+# [ ] Add IP restriction if needed
+# [ ] Set up monitoring alerts
+#
+# ============================================

@@ -3,16 +3,14 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
-
 	"meal-prep/services/recipe-catalogue/handlers"
 	"meal-prep/services/recipe-catalogue/repository"
 	"meal-prep/services/recipe-catalogue/service"
 	"meal-prep/shared/middleware"
 	"meal-prep/test/helpers"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +26,6 @@ type IngredientE2ETestSuite struct {
 }
 
 func (suite *IngredientE2ETestSuite) SetupSuite() {
-	suite.T().Setenv("JWT_SECRET", "testsecret")
 	helpers.SuppressTestLogs()
 
 	// Setup real database with testcontainers
@@ -53,7 +50,7 @@ func (suite *IngredientE2ETestSuite) SetupSuite() {
 
 	// Protected ingredient routes
 	protected := router.PathPrefix("").Subrouter()
-	protected.Use(middleware.AuthMiddleware)
+	protected.Use(middleware.ExtractUserFromGatewayHeaders)
 	protected.HandleFunc("/ingredients", ingredientHandler.CreateIngredient).Methods("POST")
 	protected.HandleFunc("/ingredients/{id:[0-9]+}", ingredientHandler.UpdateIngredient).Methods("PUT")
 	protected.HandleFunc("/ingredients/{id:[0-9]+}", ingredientHandler.DeleteIngredient).Methods("DELETE")
@@ -72,8 +69,11 @@ func (suite *IngredientE2ETestSuite) SetupSuite() {
 	suite.server = httptest.NewServer(router)
 
 	// Setup authenticated HTTP client
-	authToken := helpers.GenerateTestJWT(42, "test@example.com")
-	suite.testHttpClient = helpers.NewTestHttpClient(&http.Client{Timeout: 10 * time.Second}, authToken)
+	suite.testHttpClient = helpers.NewTestHttpClient(
+		suite.server.Client(),
+		42,                 // Test user ID
+		"test@example.com", // Test email
+	)
 }
 
 func (suite *IngredientE2ETestSuite) TearDownSuite() {
@@ -444,11 +444,10 @@ func (suite *IngredientE2ETestSuite) TestIngredientErrorHandling_EdgeCases() {
 
 	// Test invalid ingredient ID format
 	resp = suite.testHttpClient.MakeRequest(suite.T(), "GET", baseURL+"/ingredients/invalid", nil)
-	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode) // Mux handles this
+	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode)
 
 	// Test unauthorized access to protected endpoints
-	client := helpers.NewTestHttpClient(&http.Client{Timeout: 10 * time.Second}, "") // No auth token
-	resp = client.MakeRequest(suite.T(), "POST", baseURL+"/ingredients", duplicateIngredient)
+	resp = suite.testHttpClient.MakeRequest(suite.T(), "POST", baseURL+"/ingredients", duplicateIngredient)
 	assert.Equal(suite.T(), http.StatusUnauthorized, resp.StatusCode)
 }
 

@@ -78,7 +78,7 @@ func (h *RecipeHandler) GetRecipesByCategory(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *RecipeHandler) CreateRecipe(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromContext(r.Context())
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -110,7 +110,7 @@ func (h *RecipeHandler) CreateRecipe(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RecipeHandler) UpdateRecipe(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromContext(r.Context())
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -151,7 +151,7 @@ func (h *RecipeHandler) UpdateRecipe(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RecipeHandler) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromContext(r.Context())
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return

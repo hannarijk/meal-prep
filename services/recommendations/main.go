@@ -41,7 +41,7 @@ func main() {
 	// Routes - all require authentication
 	router := mux.NewRouter()
 	router.Use(middleware.LoggingMiddleware("recommendations-service"))
-	router.Use(middleware.AuthMiddleware)
+	router.Use(middleware.ExtractUserFromGatewayHeaders)
 
 	router.HandleFunc("/recommendations", recHandler.GetRecommendations).Methods("GET")
 	router.HandleFunc("/preferences", recHandler.GetUserPreferences).Methods("GET")

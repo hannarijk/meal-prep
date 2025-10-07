@@ -67,7 +67,7 @@ func main() {
 
 	// Protected routes - Recipes
 	protected := router.PathPrefix("").Subrouter()
-	protected.Use(middleware.AuthMiddleware)
+	protected.Use(middleware.ExtractUserFromGatewayHeaders)
 
 	// Recipe management
 	protected.HandleFunc("/recipes", recipeHandler.CreateRecipe).Methods("POST")

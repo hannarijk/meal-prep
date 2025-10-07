@@ -20,7 +20,7 @@ func NewRecommendationHandler(recService service.RecommendationService) *Recomme
 }
 
 func (h *RecommendationHandler) GetRecommendations(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromContext(r.Context())
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -56,7 +56,7 @@ func (h *RecommendationHandler) GetRecommendations(w http.ResponseWriter, r *htt
 }
 
 func (h *RecommendationHandler) GetUserPreferences(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromContext(r.Context())
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -72,7 +72,7 @@ func (h *RecommendationHandler) GetUserPreferences(w http.ResponseWriter, r *htt
 }
 
 func (h *RecommendationHandler) UpdateUserPreferences(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromContext(r.Context())
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
 		log.Println("ERROR: No user in context")
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
@@ -102,7 +102,7 @@ func (h *RecommendationHandler) UpdateUserPreferences(w http.ResponseWriter, r *
 }
 
 func (h *RecommendationHandler) LogCooking(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromContext(r.Context())
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -131,7 +131,7 @@ func (h *RecommendationHandler) LogCooking(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *RecommendationHandler) GetCookingHistory(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromContext(r.Context())
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return

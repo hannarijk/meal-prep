@@ -354,9 +354,6 @@ go run ./services/recommendations
 Create a `.env` file in the project root:
 
 ```bash
-# CORS - only for local development (API Gateway will handle this in production)
-ENABLE_CORS=true
-
 # Database Configuration
 DB_HOST=localhost
 DB_PORT=5432

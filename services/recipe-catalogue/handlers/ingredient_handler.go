@@ -2,13 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/gorilla/mux"
 	"meal-prep/services/recipe-catalogue/domain"
 	"meal-prep/services/recipe-catalogue/service"
 	"meal-prep/shared/middleware"
 	"meal-prep/shared/models"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 type IngredientHandler struct {
@@ -65,7 +66,7 @@ func (h *IngredientHandler) GetIngredientByID(w http.ResponseWriter, r *http.Req
 }
 
 func (h *IngredientHandler) CreateIngredient(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromContext(r.Context())
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -95,7 +96,7 @@ func (h *IngredientHandler) CreateIngredient(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *IngredientHandler) UpdateIngredient(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromContext(r.Context())
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -132,7 +133,7 @@ func (h *IngredientHandler) UpdateIngredient(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *IngredientHandler) DeleteIngredient(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromContext(r.Context())
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -207,7 +208,7 @@ func (h *IngredientHandler) GetRecipeIngredients(w http.ResponseWriter, r *http.
 }
 
 func (h *IngredientHandler) AddRecipeIngredient(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromContext(r.Context())
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -250,7 +251,7 @@ func (h *IngredientHandler) AddRecipeIngredient(w http.ResponseWriter, r *http.R
 }
 
 func (h *IngredientHandler) UpdateRecipeIngredient(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromContext(r.Context())
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -297,7 +298,7 @@ func (h *IngredientHandler) UpdateRecipeIngredient(w http.ResponseWriter, r *htt
 }
 
 func (h *IngredientHandler) RemoveRecipeIngredient(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromContext(r.Context())
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -334,7 +335,7 @@ func (h *IngredientHandler) RemoveRecipeIngredient(w http.ResponseWriter, r *htt
 }
 
 func (h *IngredientHandler) SetRecipeIngredients(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromContext(r.Context())
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
@@ -382,7 +383,7 @@ func (h *IngredientHandler) SetRecipeIngredients(w http.ResponseWriter, r *http.
 }
 
 func (h *IngredientHandler) GenerateShoppingList(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromContext(r.Context())
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
 		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return

@@ -5,16 +5,16 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
-	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go/wait"
 	"meal-prep/shared/database"
 	"meal-prep/shared/logging"
-	"meal-prep/shared/utils"
 	"net/http"
 	"os"
+	"strconv"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -217,17 +217,19 @@ func RestoreTestLogs() {
 // HTTP REQUEST HELPERS
 // =============================================================================
 
-// TestHttpClient wraps http.Client for e2e testing
+// TestHttpClient with Kong header injection
 type TestHttpClient struct {
-	Client    *http.Client
-	authToken string
+	Client *http.Client
+	userID int
+	email  string
 }
 
-// NewTestHttpClient creates a new TestHttpClient
-func NewTestHttpClient(client *http.Client, authToken string) *TestHttpClient {
+// NewTestHttpClient creates client that simulates Kong
+func NewTestHttpClient(client *http.Client, userID int, email string) *TestHttpClient {
 	return &TestHttpClient{
-		Client:    client,
-		authToken: authToken,
+		Client: client,
+		userID: userID,
+		email:  email,
 	}
 }
 
@@ -257,7 +259,7 @@ func (c *TestHttpClient) MakeRequest(t *testing.T, method, url string, payload i
 	return resp
 }
 
-// MakeAuthenticatedRequest performs an HTTP request with JWT authentication
+// MakeAuthenticatedRequest simulates Kong's behavior
 func (c *TestHttpClient) MakeAuthenticatedRequest(t *testing.T, method, url string, payload interface{}) *http.Response {
 	t.Helper()
 
@@ -273,10 +275,13 @@ func (c *TestHttpClient) MakeAuthenticatedRequest(t *testing.T, method, url stri
 	req, err := http.NewRequest(method, url, body)
 	require.NoError(t, err, "Failed to create HTTP request")
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
 	if payload != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
+
+	userID := 42 // Test user
+	email := "test@example.com"
+	InjectKongHeaders(req, userID, email)
 
 	resp, err := c.Client.Do(req)
 	require.NoError(t, err, "HTTP request failed")
@@ -288,13 +293,10 @@ func (c *TestHttpClient) MakeAuthenticatedRequest(t *testing.T, method, url stri
 // GENERIC HELPERS
 // =============================================================================
 
-func GenerateTestJWT(userID int, email string) string {
-	tokenString, err := utils.GenerateJWT(userID, email)
-	if err != nil {
-		panic("Failed to generate test JWT: " + err.Error())
-	}
-
-	return tokenString
+func InjectKongHeaders(req *http.Request, userID int, email string) {
+	req.Header.Set("X-User-ID", strconv.Itoa(userID))
+	req.Header.Set("X-Email", email)
+	req.Header.Set("X-Forwarded-By", "kong-gateway")
 }
 
 func StringPtr(s string) *string {

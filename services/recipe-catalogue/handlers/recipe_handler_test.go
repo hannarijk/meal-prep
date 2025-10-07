@@ -2,19 +2,17 @@ package handlers
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"meal-prep/services/recipe-catalogue/domain"
+	"meal-prep/services/recipe-catalogue/test"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"meal-prep/services/recipe-catalogue/handlers/mocks"
 	"meal-prep/services/recipe-catalogue/service/testdata"
-	"meal-prep/shared/middleware"
 	"meal-prep/shared/models"
-	"meal-prep/shared/utils"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -241,11 +239,8 @@ func TestRecipeHandler_CreateRecipe_Success(t *testing.T) {
 	requestBody, _ := json.Marshal(request)
 	req := httptest.NewRequest("POST", "/recipes", bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
-
 	// Add authenticated user to context
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
@@ -288,11 +283,8 @@ func TestRecipeHandler_CreateRecipe_InvalidJSON(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "/recipes", bytes.NewBufferString(`{"name":"test","invalid":}`))
 	req.Header.Set("Content-Type", "application/json")
-
 	// Add authenticated user to context
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
@@ -342,11 +334,8 @@ func TestRecipeHandler_CreateRecipe_ValidationErrors(t *testing.T) {
 			requestBody, _ := json.Marshal(request)
 			req := httptest.NewRequest("POST", "/recipes", bytes.NewBuffer(requestBody))
 			req.Header.Set("Content-Type", "application/json")
-
 			// Add authenticated user to context
-			claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-			ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-			req = req.WithContext(ctx)
+			req = test.AddAuthContext(req, 1, "test@example.com")
 
 			recorder := httptest.NewRecorder()
 
@@ -374,11 +363,8 @@ func TestRecipeHandler_CreateRecipe_InternalServerError(t *testing.T) {
 	requestBody, _ := json.Marshal(request)
 	req := httptest.NewRequest("POST", "/recipes", bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
-
 	// Add authenticated user to context
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
@@ -414,11 +400,8 @@ func TestRecipeHandler_UpdateRecipe_Success(t *testing.T) {
 	req := httptest.NewRequest("PUT", "/recipes/1", bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
-
 	// Add authenticated user to context
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
@@ -442,11 +425,8 @@ func TestRecipeHandler_UpdateRecipe_InvalidID(t *testing.T) {
 	req := httptest.NewRequest("PUT", "/recipes/invalid", bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = mux.SetURLVars(req, map[string]string{"id": "invalid"})
-
 	// Add authenticated user to context
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
@@ -473,11 +453,8 @@ func TestRecipeHandler_UpdateRecipe_RecipeNotFound(t *testing.T) {
 	req := httptest.NewRequest("PUT", "/recipes/999", bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
 	req = mux.SetURLVars(req, map[string]string{"id": "999"})
-
 	// Add authenticated user to context
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
@@ -504,11 +481,8 @@ func TestRecipeHandler_DeleteRecipe_Success(t *testing.T) {
 
 	req := httptest.NewRequest("DELETE", "/recipes/1", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
-
 	// Add authenticated user to context
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
@@ -529,11 +503,8 @@ func TestRecipeHandler_DeleteRecipe_InvalidID(t *testing.T) {
 
 	req := httptest.NewRequest("DELETE", "/recipes/invalid", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "invalid"})
-
 	// Add authenticated user to context
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
@@ -556,11 +527,8 @@ func TestRecipeHandler_DeleteRecipe_NotFound(t *testing.T) {
 
 	req := httptest.NewRequest("DELETE", "/recipes/999", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "999"})
-
 	// Add authenticated user to context
-	claims := &utils.Claims{UserID: 1, Email: "test@example.com"}
-	ctx := context.WithValue(req.Context(), middleware.UserContextKey, claims)
-	req = req.WithContext(ctx)
+	req = test.AddAuthContext(req, 1, "test@example.com")
 
 	recorder := httptest.NewRecorder()
 
