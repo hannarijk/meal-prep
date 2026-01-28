@@ -5,9 +5,6 @@ import (
 	"time"
 )
 
-// Existing builders...
-// RecipeBuilder follows the Builder pattern for creating test recipes
-// This pattern is widely used at Google, Microsoft, etc. for maintainable test data
 type RecipeBuilder struct {
 	recipe models.Recipe
 }
@@ -78,7 +75,6 @@ func (b *RecipeBuilder) BuildPtr() *models.Recipe {
 	return &recipe
 }
 
-// CategoryBuilder
 type CategoryBuilder struct {
 	category models.Category
 }
@@ -124,7 +120,6 @@ func (b *CategoryBuilder) BuildPtr() *models.Category {
 	return &category
 }
 
-// RecipeWithIngredientsBuilder for complex test scenarios
 type RecipeWithIngredientsBuilder struct {
 	recipeWithIngredients models.RecipeWithIngredients
 }
@@ -162,7 +157,6 @@ func (b *RecipeWithIngredientsBuilder) BuildPtr() *models.RecipeWithIngredients 
 	return &recipeWithIngredients
 }
 
-// Request builders for API requests
 type CreateRecipeRequestBuilder struct {
 	request models.CreateRecipeRequest
 }
@@ -229,9 +223,6 @@ func (b *UpdateRecipeRequestBuilder) Build() models.UpdateRecipeRequest {
 	return b.request
 }
 
-// NEW INGREDIENT BUILDERS
-
-// IngredientBuilder
 type IngredientBuilder struct {
 	ingredient models.Ingredient
 }
@@ -287,7 +278,6 @@ func (b *IngredientBuilder) BuildPtr() *models.Ingredient {
 	return &ingredient
 }
 
-// RecipeIngredientBuilder
 type RecipeIngredientBuilder struct {
 	recipeIngredient models.RecipeIngredient
 }
@@ -357,7 +347,6 @@ func (b *RecipeIngredientBuilder) BuildPtr() *models.RecipeIngredient {
 	return &recipeIngredient
 }
 
-// CreateIngredientRequestBuilder
 type CreateIngredientRequestBuilder struct {
 	request models.CreateIngredientRequest
 }
@@ -401,7 +390,6 @@ func (b *CreateIngredientRequestBuilder) Build() models.CreateIngredientRequest 
 	return b.request
 }
 
-// UpdateIngredientRequestBuilder
 type UpdateIngredientRequestBuilder struct {
 	request models.UpdateIngredientRequest
 }
@@ -435,7 +423,6 @@ func (b *UpdateIngredientRequestBuilder) Build() models.UpdateIngredientRequest 
 	return b.request
 }
 
-// AddRecipeIngredientRequestBuilder
 type AddRecipeIngredientRequestBuilder struct {
 	request models.AddRecipeIngredientRequest
 }
@@ -480,35 +467,34 @@ func (b *AddRecipeIngredientRequestBuilder) Build() models.AddRecipeIngredientRe
 	return b.request
 }
 
-// ShoppingListRequestBuilder
-type ShoppingListRequestBuilder struct {
-	request models.ShoppingListRequest
+type GroceryListRequestBuilder struct {
+	request models.GroceryListRequest
 }
 
-func NewShoppingListRequestBuilder() *ShoppingListRequestBuilder {
-	return &ShoppingListRequestBuilder{
-		request: models.ShoppingListRequest{
+func NewGroceryListRequestBuilder() *GroceryListRequestBuilder {
+	return &GroceryListRequestBuilder{
+		request: models.GroceryListRequest{
 			RecipeIDs: []int{1, 2},
 		},
 	}
 }
 
-func (b *ShoppingListRequestBuilder) WithRecipeIDs(recipeIDs []int) *ShoppingListRequestBuilder {
+func (b *GroceryListRequestBuilder) WithRecipeIDs(recipeIDs []int) *GroceryListRequestBuilder {
 	b.request.RecipeIDs = recipeIDs
 	return b
 }
 
-func (b *ShoppingListRequestBuilder) WithSingleRecipe(recipeID int) *ShoppingListRequestBuilder {
+func (b *GroceryListRequestBuilder) WithSingleRecipe(recipeID int) *GroceryListRequestBuilder {
 	b.request.RecipeIDs = []int{recipeID}
 	return b
 }
 
-func (b *ShoppingListRequestBuilder) WithNoRecipes() *ShoppingListRequestBuilder {
+func (b *GroceryListRequestBuilder) WithNoRecipes() *GroceryListRequestBuilder {
 	b.request.RecipeIDs = []int{}
 	return b
 }
 
-func (b *ShoppingListRequestBuilder) Build() models.ShoppingListRequest {
+func (b *GroceryListRequestBuilder) Build() models.GroceryListRequest {
 	return b.request
 }
 

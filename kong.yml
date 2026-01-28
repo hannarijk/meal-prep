@@ -70,7 +70,7 @@ routes:
     paths:
       - /recipes
       - /ingredients
-      - /shopping-list
+      - /grocery-list
     strip_path: false
     plugins:
       - name: jwt
@@ -219,7 +219,7 @@ consumers:
 #   PUT    /recipes/{id}    → recipe-service/recipes/{id}
 #   DELETE /recipes/{id}    → recipe-service/recipes/{id}
 #   POST   /ingredients     → recipe-service/ingredients
-#   POST   /shopping-list   → recipe-service/shopping-list
+#   POST   /grocery-list    → recipe-service/grocery-list
 #   GET    /recommendations → recommendations-service/recommendations
 #   GET    /preferences     → recommendations-service/preferences
 #   PUT    /preferences     → recommendations-service/preferences

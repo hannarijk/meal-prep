@@ -40,9 +40,11 @@ func main() {
 
 	recipeService := service.NewRecipeService(recipeRepo, categoryRepo, ingredientRepo)
 	ingredientService := service.NewIngredientService(ingredientRepo, recipeRepo)
+	groceryService := service.NewGroceryService(ingredientRepo, recipeRepo)
 
 	recipeHandler := handlers.NewRecipeHandler(recipeService)
 	ingredientHandler := handlers.NewIngredientHandler(ingredientService)
+	groceryHandler := handlers.NewGroceryHandler(groceryService)
 
 	// Routes with logging middleware
 	router := mux.NewRouter()
@@ -85,8 +87,8 @@ func main() {
 	protected.HandleFunc("/recipes/{recipeId:[0-9]+}/ingredients/{ingredientId:[0-9]+}", ingredientHandler.UpdateRecipeIngredient).Methods("PUT")
 	protected.HandleFunc("/recipes/{recipeId:[0-9]+}/ingredients/{ingredientId:[0-9]+}", ingredientHandler.RemoveRecipeIngredient).Methods("DELETE")
 
-	// Shopping list generation
-	protected.HandleFunc("/shopping-list", ingredientHandler.GenerateShoppingList).Methods("POST")
+	// Grocery list generation
+	protected.HandleFunc("/grocery-list", groceryHandler.GenerateGroceryList).Methods("POST")
 
 	port := os.Getenv("RECIPE_CATALOGUE_PORT")
 	if port == "" {

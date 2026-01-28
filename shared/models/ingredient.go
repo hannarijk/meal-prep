@@ -32,15 +32,3 @@ type UpdateIngredientRequest struct {
 	Description string `json:"description"`
 	Category    string `json:"category"`
 }
-
-type ShoppingListItem struct {
-	IngredientID  int        `json:"ingredient_id"`
-	Ingredient    Ingredient `json:"ingredient"`
-	TotalQuantity float64    `json:"total_quantity"`
-	Unit          string     `json:"unit"`
-	Recipes       []string   `json:"recipes"` // List of recipe names using this ingredient
-}
-
-type ShoppingListRequest struct {
-	RecipeIDs []int `json:"recipe_ids"`
-}

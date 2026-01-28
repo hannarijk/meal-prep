@@ -25,7 +25,6 @@ type IngredientService interface {
 	SetRecipeIngredients(recipeID int, ingredients []models.AddRecipeIngredientRequest) error
 
 	GetRecipesUsingIngredient(ingredientID int) ([]models.Recipe, error)
-	GenerateShoppingList(req models.ShoppingListRequest) ([]models.ShoppingListItem, error)
 }
 
 type ingredientService struct {
@@ -315,66 +314,6 @@ func (s *ingredientService) GetRecipesUsingIngredient(ingredientID int) ([]model
 	}
 
 	return s.ingredientRepo.GetRecipesUsingIngredient(ingredientID)
-}
-
-func (s *ingredientService) GenerateShoppingList(req models.ShoppingListRequest) ([]models.ShoppingListItem, error) {
-	if len(req.RecipeIDs) == 0 {
-		return []models.ShoppingListItem{}, nil
-	}
-
-	// Get ingredients for all recipes
-	ingredientsMap, err := s.ingredientRepo.GetIngredientsForRecipes(req.RecipeIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get recipe names for reference
-	recipeNamesMap := make(map[int]string)
-	for _, recipeID := range req.RecipeIDs {
-		recipe, err := s.recipeRepo.GetByID(recipeID)
-		if err == nil {
-			recipeNamesMap[recipeID] = recipe.Name
-		}
-	}
-
-	// Aggregate ingredients by ingredient ID
-	aggregatedIngredients := make(map[int]*models.ShoppingListItem)
-
-	for recipeID, ingredients := range ingredientsMap {
-		recipeName := recipeNamesMap[recipeID]
-
-		for _, ingredient := range ingredients {
-			key := ingredient.IngredientID
-
-			if existing, exists := aggregatedIngredients[key]; exists {
-				// Same ingredient from another recipe - add quantities if same unit
-				if existing.Unit == ingredient.Unit {
-					existing.TotalQuantity += ingredient.Quantity
-				} else {
-					// Different units - note in recipes but don't add quantities
-					existing.TotalQuantity = -1 // Flag for manual calculation
-				}
-				existing.Recipes = append(existing.Recipes, recipeName)
-			} else {
-				// New ingredient
-				aggregatedIngredients[key] = &models.ShoppingListItem{
-					IngredientID:  ingredient.IngredientID,
-					Ingredient:    ingredient.Ingredient,
-					TotalQuantity: ingredient.Quantity,
-					Unit:          ingredient.Unit,
-					Recipes:       []string{recipeName},
-				}
-			}
-		}
-	}
-
-	// Convert map to slice
-	var shoppingList []models.ShoppingListItem
-	for _, item := range aggregatedIngredients {
-		shoppingList = append(shoppingList, *item)
-	}
-
-	return shoppingList, nil
 }
 
 func (s *ingredientService) validateRecipeIngredientRequest(req models.AddRecipeIngredientRequest) error {

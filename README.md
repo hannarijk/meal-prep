@@ -162,11 +162,11 @@ curl -X POST http://localhost:8001/register \
 | `/recipes/{recipeId}/ingredients/{ingredientId}` | PUT | Update recipe ingredient | **Yes** |
 | `/recipes/{recipeId}/ingredients/{ingredientId}` | DELETE | Remove ingredient from recipe | **Yes** |
 
-#### Shopping Lists
+#### Grocery Lists
 
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `/shopping-list` | POST | Generate shopping list from recipes | **Yes** |
+| Endpoint        | Method | Description                        | Auth Required |
+|-----------------|--------|------------------------------------|---------------|
+| `/grocery-list` | POST | Generate grocery list from recipes | **Yes** |
 
 #### Create Recipe (Protected)
 
@@ -218,10 +218,10 @@ curl -X POST http://localhost:8002/recipes/1/ingredients \
   }'
 ```
 
-#### Generate Shopping List
+#### Generate Grocery List
 
 ```bash
-curl -X POST http://localhost:8002/shopping-list \
+curl -X POST http://localhost:8002/grocery-list \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{

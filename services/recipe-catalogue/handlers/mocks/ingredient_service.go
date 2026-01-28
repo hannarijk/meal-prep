@@ -117,11 +117,3 @@ func (m *MockIngredientService) GetRecipesUsingIngredient(ingredientID int) ([]m
 	}
 	return args.Get(0).([]models.Recipe), args.Error(1)
 }
-
-func (m *MockIngredientService) GenerateShoppingList(req models.ShoppingListRequest) ([]models.ShoppingListItem, error) {
-	args := m.Called(req)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]models.ShoppingListItem), args.Error(1)
-}

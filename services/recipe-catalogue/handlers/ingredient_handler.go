@@ -381,36 +381,3 @@ func (h *IngredientHandler) SetRecipeIngredients(w http.ResponseWriter, r *http.
 
 	writeSuccessResponse(w, ingredients, http.StatusOK)
 }
-
-func (h *IngredientHandler) GenerateShoppingList(w http.ResponseWriter, r *http.Request) {
-	user, ok := middleware.GetUserFromGatewayContext(r.Context())
-	if !ok {
-		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
-		return
-	}
-	_ = user
-
-	var req models.ShoppingListRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	if len(req.RecipeIDs) == 0 {
-		writeErrorResponse(w, "At least one recipe ID is required", http.StatusBadRequest)
-		return
-	}
-
-	shoppingList, err := h.ingredientService.GenerateShoppingList(req)
-	if err != nil {
-		switch err {
-		case domain.ErrRecipeNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
-		default:
-			writeErrorResponse(w, "Failed to generate shopping list", http.StatusInternalServerError)
-		}
-		return
-	}
-
-	writeSuccessResponse(w, shoppingList, http.StatusOK)
-}

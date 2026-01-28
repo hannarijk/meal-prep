@@ -38,9 +38,11 @@ func (suite *RecipeIngredientsE2ETestSuite) SetupSuite() {
 
 	recipeService := service.NewRecipeService(recipeRepo, categoryRepo, ingredientRepo)
 	ingredientService := service.NewIngredientService(ingredientRepo, recipeRepo)
+	groceryService := service.NewGroceryService(ingredientRepo, recipeRepo)
 
 	recipeHandler := handlers.NewRecipeHandler(recipeService)
 	ingredientHandler := handlers.NewIngredientHandler(ingredientService)
+	groceryHandler := handlers.NewGroceryHandler(groceryService)
 
 	// Setup HTTP server with both recipe and ingredient routes
 	router := mux.NewRouter()
@@ -69,7 +71,7 @@ func (suite *RecipeIngredientsE2ETestSuite) SetupSuite() {
 	protected.HandleFunc("/recipes/{id:[0-9]+}/ingredients", ingredientHandler.SetRecipeIngredients).Methods("PUT")
 	protected.HandleFunc("/recipes/{recipeId:[0-9]+}/ingredients/{ingredientId:[0-9]+}", ingredientHandler.UpdateRecipeIngredient).Methods("PUT")
 	protected.HandleFunc("/recipes/{recipeId:[0-9]+}/ingredients/{ingredientId:[0-9]+}", ingredientHandler.RemoveRecipeIngredient).Methods("DELETE")
-	protected.HandleFunc("/shopping-list", ingredientHandler.GenerateShoppingList).Methods("POST")
+	protected.HandleFunc("/grocery-list", groceryHandler.GenerateGroceryList).Methods("POST")
 
 	// Health check
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

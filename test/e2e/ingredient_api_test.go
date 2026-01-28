@@ -36,7 +36,10 @@ func (suite *IngredientE2ETestSuite) SetupSuite() {
 	ingredientRepo := repository.NewIngredientRepository(suite.testDB.DB)
 
 	ingredientService := service.NewIngredientService(ingredientRepo, recipeRepo)
+	groceryService := service.NewGroceryService(ingredientRepo, recipeRepo)
+
 	ingredientHandler := handlers.NewIngredientHandler(ingredientService)
+	groceryHandler := handlers.NewGroceryHandler(groceryService)
 
 	// Setup HTTP server with ingredient routes
 	router := mux.NewRouter()
@@ -58,7 +61,7 @@ func (suite *IngredientE2ETestSuite) SetupSuite() {
 	protected.HandleFunc("/recipes/{id:[0-9]+}/ingredients", ingredientHandler.SetRecipeIngredients).Methods("PUT")
 	protected.HandleFunc("/recipes/{recipeId:[0-9]+}/ingredients/{ingredientId:[0-9]+}", ingredientHandler.UpdateRecipeIngredient).Methods("PUT")
 	protected.HandleFunc("/recipes/{recipeId:[0-9]+}/ingredients/{ingredientId:[0-9]+}", ingredientHandler.RemoveRecipeIngredient).Methods("DELETE")
-	protected.HandleFunc("/shopping-list", ingredientHandler.GenerateShoppingList).Methods("POST")
+	protected.HandleFunc("/grocery-list", groceryHandler.GenerateGroceryList).Methods("POST")
 
 	// Health check
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -378,48 +381,48 @@ func (suite *IngredientE2ETestSuite) TestRecipeIngredientManagement_CompleteWork
 }
 
 // =============================================================================
-// SHOPPING LIST GENERATION SCENARIO
+// GROCERY LIST GENERATION SCENARIO
 // =============================================================================
 
-func (suite *IngredientE2ETestSuite) TestShoppingListGeneration_UserWorkflow() {
+func (suite *IngredientE2ETestSuite) TestGroceryListGeneration_UserWorkflow() {
 	baseURL := suite.server.URL
 
-	// Get recipe IDs for shopping list
+	// Get recipe IDs for grocery list
 	var capreseID, chickenID int
 	err := suite.testDB.DB.QueryRow("SELECT id FROM recipe_catalogue.recipes WHERE name = 'Caprese Salad' LIMIT 1").Scan(&capreseID)
 	assert.NoError(suite.T(), err)
 	err = suite.testDB.DB.QueryRow("SELECT id FROM recipe_catalogue.recipes WHERE name = 'Grilled Chicken' LIMIT 1").Scan(&chickenID)
 	assert.NoError(suite.T(), err)
 
-	// Generate shopping list for multiple recipes
-	shoppingListRequest := map[string]interface{}{
+	// Generate grocery list for multiple recipes
+	groceryListRequest := map[string]interface{}{
 		"recipe_ids": []int{capreseID, chickenID},
 	}
 
-	resp := suite.testHttpClient.MakeAuthenticatedRequest(suite.T(), "POST", baseURL+"/shopping-list", shoppingListRequest)
+	resp := suite.testHttpClient.MakeAuthenticatedRequest(suite.T(), "POST", baseURL+"/grocery-list", groceryListRequest)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var shoppingList []map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&shoppingList)
+	var groceryList []map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&groceryList)
 	assert.NoError(suite.T(), err)
-	assert.GreaterOrEqual(suite.T(), len(shoppingList), 3, "Should have items for both recipes")
+	assert.GreaterOrEqual(suite.T(), len(groceryList), 3, "Should have items for both recipes")
 
-	// Verify shopping list contains expected ingredients
+	// Verify grocery list contains expected ingredients
 	ingredientNames := make(map[string]bool)
-	for _, item := range shoppingList {
+	for _, item := range groceryList {
 		ingredient := item["ingredient"].(map[string]interface{})
 		ingredientNames[ingredient["name"].(string)] = true
 
-		// Verify shopping list item structure
+		// Verify grocery list item structure
 		assert.Contains(suite.T(), item, "ingredient_id")
 		assert.Contains(suite.T(), item, "total_quantity")
 		assert.Contains(suite.T(), item, "unit")
 		assert.Contains(suite.T(), item, "recipes")
 	}
 
-	assert.True(suite.T(), ingredientNames["Tomato"], "Shopping list should contain tomato")
-	assert.True(suite.T(), ingredientNames["Mozzarella"], "Shopping list should contain mozzarella")
-	assert.True(suite.T(), ingredientNames["Chicken Breast"], "Shopping list should contain chicken")
+	assert.True(suite.T(), ingredientNames["Tomato"], "Grocery list should contain tomato")
+	assert.True(suite.T(), ingredientNames["Mozzarella"], "Grocery list should contain mozzarella")
+	assert.True(suite.T(), ingredientNames["Chicken Breast"], "Grocery list should contain chicken")
 }
 
 // =============================================================================
