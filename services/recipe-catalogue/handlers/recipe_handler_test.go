@@ -224,6 +224,29 @@ func TestRecipeHandler_GetRecipesByCategory_CategoryNotFound(t *testing.T) {
 	setup.recipeService.AssertExpectations(t)
 }
 
+func TestRecipeHandler_GetRecipesByCategory_RecipesDontExistForCategory(t *testing.T) {
+	setup := setupRecipeHandlerTest()
+
+	emptyRecipes := make([]models.Recipe, 0)
+	setup.recipeService.On("GetRecipesByCategory", 1).Return(emptyRecipes, nil)
+
+	req := httptest.NewRequest("GET", "/categories/1/recipes", nil)
+	req = mux.SetURLVars(req, map[string]string{"id": "1"})
+	recorder := httptest.NewRecorder()
+
+	setup.handler.GetRecipesByCategory(recorder, req)
+
+	// Should return 200 + empty array
+	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	var response []models.Recipe
+	err := json.NewDecoder(recorder.Body).Decode(&response)
+	assert.NoError(t, err)
+	assert.Len(t, response, 0) // Empty array
+
+	setup.recipeService.AssertExpectations(t)
+}
+
 // =============================================================================
 // CREATE RECIPE TESTS (PROTECTED ENDPOINT)
 // =============================================================================

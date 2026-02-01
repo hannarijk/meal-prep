@@ -2,9 +2,10 @@ package repository
 
 import (
 	"database/sql"
-	"github.com/lib/pq"
 	"meal-prep/shared/database"
 	"meal-prep/shared/models"
+
+	"github.com/lib/pq"
 )
 
 type RecipeRepository interface {
@@ -51,7 +52,7 @@ func (r *recipeRepository) GetAll() ([]models.Recipe, error) {
 	}
 	defer rows.Close()
 
-	var recipes []models.Recipe
+	recipes := make([]models.Recipe, 0)
 	for rows.Next() {
 		recipe := models.Recipe{}
 		category := models.Category{}
@@ -122,7 +123,7 @@ func (r *recipeRepository) GetByCategory(categoryID int) ([]models.Recipe, error
 	}
 	defer rows.Close()
 
-	var recipes []models.Recipe
+	recipes := make([]models.Recipe, 0)
 	for rows.Next() {
 		recipe := models.Recipe{}
 		category := models.Category{}
@@ -381,7 +382,7 @@ func (r *recipeRepository) SearchRecipesByIngredients(ingredientIDs []int) ([]mo
 	}
 	defer rows.Close()
 
-	var recipes []models.Recipe
+	recipes := make([]models.Recipe, 0)
 	for rows.Next() {
 		recipe := models.Recipe{}
 		category := models.Category{}

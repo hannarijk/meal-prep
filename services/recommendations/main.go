@@ -71,7 +71,7 @@ func main() {
 }
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {
-	logging.WithContext(r.Context()).Debug("Health check requested")
+	//logging.WithContext(r.Context()).Debug("Health check requested")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

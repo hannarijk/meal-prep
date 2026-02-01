@@ -29,25 +29,30 @@ func LoggingMiddleware(serviceName string) func(next http.Handler) http.Handler 
 			// Wrapper to capture status code
 			ww := &responseWriterWrapper{ResponseWriter: w, statusCode: http.StatusOK}
 
-			// Log incoming request
-			logging.WithContext(ctx).Info("Incoming request",
-				"method", r.Method,
-				"uri", r.RequestURI,
-				"remote_ip", r.RemoteAddr,
-				"user_agent", r.UserAgent(),
-			)
+			// Log incoming request if not /health
+			if r.RequestURI != "/health" {
+				logging.WithContext(ctx).Info("Incoming request",
+					"method", r.Method,
+					"uri", r.RequestURI,
+					"remote_ip", r.RemoteAddr,
+					"user_agent", r.UserAgent(),
+				)
+			}
 
 			// Process request
 			next.ServeHTTP(ww, r)
 
 			// Log completed request
 			duration := time.Since(start)
-			logging.WithContext(ctx).Info("Request completed",
-				"method", r.Method,
-				"uri", r.RequestURI,
-				"status_code", ww.statusCode,
-				"duration_ms", duration.Milliseconds(),
-			)
+
+			if r.RequestURI != "/health" {
+				logging.WithContext(ctx).Info("Request completed",
+					"method", r.Method,
+					"uri", r.RequestURI,
+					"status_code", ww.statusCode,
+					"duration_ms", duration.Milliseconds(),
+				)
+			}
 		})
 	}
 }
