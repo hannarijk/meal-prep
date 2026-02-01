@@ -5,6 +5,7 @@ import (
 	"meal-prep/services/recipe-catalogue/domain"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"meal-prep/services/recipe-catalogue/service"
 	"meal-prep/shared/middleware"
@@ -22,6 +23,18 @@ func NewRecipeHandler(recipeService service.RecipeService) *RecipeHandler {
 }
 
 func (h *RecipeHandler) GetAllRecipes(w http.ResponseWriter, r *http.Request) {
+	includeIngredients := r.URL.Query().Get("include_ingredients") == "true"
+
+	if includeIngredients {
+		recipes, err := h.recipeService.GetAllRecipesWithIngredients()
+		if err != nil {
+			writeErrorResponse(w, "Failed to fetch recipes with ingredients", http.StatusInternalServerError)
+			return
+		}
+		writeSuccessResponse(w, recipes, http.StatusOK)
+		return
+	}
+
 	recipes, err := h.recipeService.GetAllRecipes()
 	if err != nil {
 		writeErrorResponse(w, "Failed to fetch recipes", http.StatusInternalServerError)
@@ -39,6 +52,23 @@ func (h *RecipeHandler) GetRecipeByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	includeIngredients := r.URL.Query().Get("include_ingredients") == "true"
+
+	if includeIngredients {
+		recipe, err := h.recipeService.GetRecipeByIDWithIngredients(id)
+		if err != nil {
+			switch err {
+			case domain.ErrRecipeNotFound:
+				writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			default:
+				writeErrorResponse(w, "Failed to fetch recipe with ingredients", http.StatusInternalServerError)
+			}
+			return
+		}
+		writeSuccessResponse(w, recipe, http.StatusOK)
+		return
+	}
+
 	recipe, err := h.recipeService.GetRecipeByID(id)
 	if err != nil {
 		switch err {
@@ -53,11 +83,40 @@ func (h *RecipeHandler) GetRecipeByID(w http.ResponseWriter, r *http.Request) {
 	writeSuccessResponse(w, recipe, http.StatusOK)
 }
 
+func (h *RecipeHandler) GetAllCategories(w http.ResponseWriter, r *http.Request) {
+	categories, err := h.recipeService.GetAllCategories()
+	if err != nil {
+		writeErrorResponse(w, "Failed to fetch categories", http.StatusInternalServerError)
+		return
+	}
+
+	writeSuccessResponse(w, categories, http.StatusOK)
+}
+
 func (h *RecipeHandler) GetRecipesByCategory(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	categoryID, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		writeErrorResponse(w, "Invalid category ID", http.StatusBadRequest)
+		return
+	}
+
+	includeIngredients := r.URL.Query().Get("include_ingredients") == "true"
+
+	if includeIngredients {
+		recipes, err := h.recipeService.GetRecipesByCategoryWithIngredients(categoryID)
+		if err != nil {
+			switch err {
+			case domain.ErrCategoryNotFound:
+				writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			case domain.ErrInvalidCategory:
+				writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			default:
+				writeErrorResponse(w, "Failed to fetch recipes with ingredients", http.StatusInternalServerError)
+			}
+			return
+		}
+		writeSuccessResponse(w, recipes, http.StatusOK)
 		return
 	}
 
@@ -179,14 +238,70 @@ func (h *RecipeHandler) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
 	writeSuccessResponse(w, map[string]string{"message": "Recipe deleted successfully"}, http.StatusNoContent)
 }
 
-func (h *RecipeHandler) GetAllCategories(w http.ResponseWriter, r *http.Request) {
-	categories, err := h.recipeService.GetAllCategories()
-	if err != nil {
-		writeErrorResponse(w, "Failed to fetch categories", http.StatusInternalServerError)
+func (h *RecipeHandler) SearchRecipesByIngredients(w http.ResponseWriter, r *http.Request) {
+	// Parse ingredient IDs from query parameters
+	ingredientIDsParam := r.URL.Query().Get("ingredient_ids")
+	if ingredientIDsParam == "" {
+		writeErrorResponse(w, "ingredient_ids query parameter is required", http.StatusBadRequest)
 		return
 	}
 
-	writeSuccessResponse(w, categories, http.StatusOK)
+	// Parse comma-separated ingredient IDs
+	ingredientIDs, err := h.parseIngredientIDs(ingredientIDsParam)
+	if err != nil {
+		writeErrorResponse(w, "Invalid ingredient IDs format. Use comma-separated integers", http.StatusBadRequest)
+		return
+	}
+
+	if len(ingredientIDs) == 0 {
+		writeErrorResponse(w, "At least one ingredient ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Check if client wants recipes with ingredients included
+	includeIngredients := r.URL.Query().Get("include_ingredients") == "true"
+
+	if includeIngredients {
+		recipes, err := h.recipeService.SearchRecipesByIngredientsWithIngredients(ingredientIDs)
+		if err != nil {
+			writeErrorResponse(w, "Failed to search recipes with ingredients", http.StatusInternalServerError)
+			return
+		}
+		writeSuccessResponse(w, recipes, http.StatusOK)
+		return
+	}
+
+	recipes, err := h.recipeService.SearchRecipesByIngredients(ingredientIDs)
+	if err != nil {
+		writeErrorResponse(w, "Failed to search recipes", http.StatusInternalServerError)
+		return
+	}
+
+	writeSuccessResponse(w, recipes, http.StatusOK)
+}
+
+func (h *RecipeHandler) parseIngredientIDs(ingredientIDsParam string) ([]int, error) {
+	if ingredientIDsParam == "" {
+		return nil, nil
+	}
+
+	idStrings := strings.Split(ingredientIDsParam, ",")
+	ingredientIDs := make([]int, 0, len(idStrings))
+
+	for _, idStr := range idStrings {
+		idStr = strings.TrimSpace(idStr)
+		if idStr == "" {
+			continue
+		}
+
+		id, err := strconv.Atoi(idStr)
+		if err != nil || id <= 0 {
+			return nil, err
+		}
+		ingredientIDs = append(ingredientIDs, id)
+	}
+
+	return ingredientIDs, nil
 }
 
 func writeErrorResponse(w http.ResponseWriter, message string, code int) {

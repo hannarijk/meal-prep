@@ -55,6 +55,7 @@ func main() {
 	router.HandleFunc("/recipes/{id:[0-9]+}", recipeHandler.GetRecipeByID).Methods("GET")
 	router.HandleFunc("/categories", recipeHandler.GetAllCategories).Methods("GET")
 	router.HandleFunc("/categories/{id:[0-9]+}/recipes", recipeHandler.GetRecipesByCategory).Methods("GET")
+	router.HandleFunc("/recipes/search", recipeHandler.SearchRecipesByIngredients).Methods("GET")
 
 	// Public routes - Ingredients
 	router.HandleFunc("/ingredients", ingredientHandler.GetAllIngredients).Methods("GET")
