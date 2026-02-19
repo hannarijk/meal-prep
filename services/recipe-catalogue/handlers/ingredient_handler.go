@@ -36,18 +36,18 @@ func (h *IngredientHandler) GetAllIngredients(w http.ResponseWriter, r *http.Req
 	}
 
 	if err != nil {
-		writeErrorResponse(w, "Failed to fetch ingredients", http.StatusInternalServerError)
+		models.WriteErrorResponse(w, "Failed to fetch ingredients", http.StatusInternalServerError)
 		return
 	}
 
-	writeSuccessResponse(w, ingredients, http.StatusOK)
+	models.WriteSuccessResponse(w, ingredients, http.StatusOK)
 }
 
 func (h *IngredientHandler) GetIngredientByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid ingredient ID", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid ingredient ID", http.StatusBadRequest)
 		return
 	}
 
@@ -55,27 +55,27 @@ func (h *IngredientHandler) GetIngredientByID(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		switch err {
 		case domain.ErrIngredientNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 		default:
-			writeErrorResponse(w, "Failed to fetch ingredient", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to fetch ingredient", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, ingredient, http.StatusOK)
+	models.WriteSuccessResponse(w, ingredient, http.StatusOK)
 }
 
 func (h *IngredientHandler) CreateIngredient(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
-		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
+		models.WriteErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 	_ = user // We have the authenticated user if needed for audit logs, etc.
 
 	var req models.CreateIngredientRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
@@ -83,22 +83,22 @@ func (h *IngredientHandler) CreateIngredient(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		switch err {
 		case domain.ErrIngredientNameRequired:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case domain.ErrIngredientExists:
-			writeErrorResponse(w, err.Error(), http.StatusConflict)
+			models.WriteErrorResponse(w, err.Error(), http.StatusConflict)
 		default:
-			writeErrorResponse(w, "Failed to create ingredient", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to create ingredient", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, ingredient, http.StatusCreated)
+	models.WriteSuccessResponse(w, ingredient, http.StatusCreated)
 }
 
 func (h *IngredientHandler) UpdateIngredient(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
-		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
+		models.WriteErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 	_ = user
@@ -106,13 +106,13 @@ func (h *IngredientHandler) UpdateIngredient(w http.ResponseWriter, r *http.Requ
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid ingredient ID", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid ingredient ID", http.StatusBadRequest)
 		return
 	}
 
 	var req models.UpdateIngredientRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
@@ -120,22 +120,22 @@ func (h *IngredientHandler) UpdateIngredient(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		switch err {
 		case domain.ErrIngredientNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 		case domain.ErrIngredientNameRequired:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
-			writeErrorResponse(w, "Failed to update ingredient", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to update ingredient", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, ingredient, http.StatusOK)
+	models.WriteSuccessResponse(w, ingredient, http.StatusOK)
 }
 
 func (h *IngredientHandler) DeleteIngredient(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
-		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
+		models.WriteErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 	_ = user
@@ -143,7 +143,7 @@ func (h *IngredientHandler) DeleteIngredient(w http.ResponseWriter, r *http.Requ
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid ingredient ID", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid ingredient ID", http.StatusBadRequest)
 		return
 	}
 
@@ -151,23 +151,23 @@ func (h *IngredientHandler) DeleteIngredient(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		switch err {
 		case domain.ErrIngredientNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 		case domain.ErrCannotDeleteIngredient:
-			writeErrorResponse(w, err.Error(), http.StatusConflict)
+			models.WriteErrorResponse(w, err.Error(), http.StatusConflict)
 		default:
-			writeErrorResponse(w, "Failed to delete ingredient", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to delete ingredient", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, map[string]string{"message": "Ingredient deleted successfully"}, http.StatusNoContent)
+	models.WriteSuccessResponse(w, map[string]string{"message": "Ingredient deleted successfully"}, http.StatusNoContent)
 }
 
 func (h *IngredientHandler) GetRecipesUsingIngredient(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid ingredient ID", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid ingredient ID", http.StatusBadRequest)
 		return
 	}
 
@@ -175,21 +175,21 @@ func (h *IngredientHandler) GetRecipesUsingIngredient(w http.ResponseWriter, r *
 	if err != nil {
 		switch err {
 		case domain.ErrIngredientNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 		default:
-			writeErrorResponse(w, "Failed to fetch recipes", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to fetch recipes", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, recipes, http.StatusOK)
+	models.WriteSuccessResponse(w, recipes, http.StatusOK)
 }
 
 func (h *IngredientHandler) GetRecipeIngredients(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	recipeID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
 		return
 	}
 
@@ -197,20 +197,20 @@ func (h *IngredientHandler) GetRecipeIngredients(w http.ResponseWriter, r *http.
 	if err != nil {
 		switch err {
 		case domain.ErrRecipeNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 		default:
-			writeErrorResponse(w, "Failed to fetch recipe ingredients", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to fetch recipe ingredients", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, ingredients, http.StatusOK)
+	models.WriteSuccessResponse(w, ingredients, http.StatusOK)
 }
 
 func (h *IngredientHandler) AddRecipeIngredient(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
-		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
+		models.WriteErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 	_ = user
@@ -218,13 +218,13 @@ func (h *IngredientHandler) AddRecipeIngredient(w http.ResponseWriter, r *http.R
 	vars := mux.Vars(r)
 	recipeID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
 		return
 	}
 
 	var req models.AddRecipeIngredientRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
@@ -232,28 +232,28 @@ func (h *IngredientHandler) AddRecipeIngredient(w http.ResponseWriter, r *http.R
 	if err != nil {
 		switch err {
 		case domain.ErrRecipeNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 		case domain.ErrIngredientNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case domain.ErrInvalidQuantity:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case domain.ErrInvalidUnit:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case domain.ErrRecipeIngredientAlreadyExists:
-			writeErrorResponse(w, err.Error(), http.StatusConflict)
+			models.WriteErrorResponse(w, err.Error(), http.StatusConflict)
 		default:
-			writeErrorResponse(w, "Failed to add ingredient to recipe", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to add ingredient to recipe", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, ingredient, http.StatusCreated)
+	models.WriteSuccessResponse(w, ingredient, http.StatusCreated)
 }
 
 func (h *IngredientHandler) UpdateRecipeIngredient(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
-		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
+		models.WriteErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 	_ = user
@@ -261,19 +261,19 @@ func (h *IngredientHandler) UpdateRecipeIngredient(w http.ResponseWriter, r *htt
 	vars := mux.Vars(r)
 	recipeID, err := strconv.Atoi(vars["recipeId"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
 		return
 	}
 
 	ingredientID, err := strconv.Atoi(vars["ingredientId"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid ingredient ID", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid ingredient ID", http.StatusBadRequest)
 		return
 	}
 
 	var req models.AddRecipeIngredientRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
@@ -281,26 +281,26 @@ func (h *IngredientHandler) UpdateRecipeIngredient(w http.ResponseWriter, r *htt
 	if err != nil {
 		switch err {
 		case domain.ErrRecipeNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 		case domain.ErrIngredientNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 		case domain.ErrInvalidQuantity:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case domain.ErrInvalidUnit:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
-			writeErrorResponse(w, "Failed to update recipe ingredient", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to update recipe ingredient", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, ingredient, http.StatusOK)
+	models.WriteSuccessResponse(w, ingredient, http.StatusOK)
 }
 
 func (h *IngredientHandler) RemoveRecipeIngredient(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
-		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
+		models.WriteErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 	_ = user
@@ -308,13 +308,13 @@ func (h *IngredientHandler) RemoveRecipeIngredient(w http.ResponseWriter, r *htt
 	vars := mux.Vars(r)
 	recipeID, err := strconv.Atoi(vars["recipeId"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
 		return
 	}
 
 	ingredientID, err := strconv.Atoi(vars["ingredientId"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid ingredient ID", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid ingredient ID", http.StatusBadRequest)
 		return
 	}
 
@@ -322,22 +322,22 @@ func (h *IngredientHandler) RemoveRecipeIngredient(w http.ResponseWriter, r *htt
 	if err != nil {
 		switch err {
 		case domain.ErrRecipeNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 		case domain.ErrIngredientNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 		default:
-			writeErrorResponse(w, "Failed to remove ingredient from recipe", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to remove ingredient from recipe", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, map[string]string{"message": "Ingredient removed from recipe successfully"}, http.StatusOK)
+	models.WriteSuccessResponse(w, map[string]string{"message": "Ingredient removed from recipe successfully"}, http.StatusOK)
 }
 
 func (h *IngredientHandler) SetRecipeIngredients(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
-		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
+		models.WriteErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 	_ = user
@@ -345,13 +345,13 @@ func (h *IngredientHandler) SetRecipeIngredients(w http.ResponseWriter, r *http.
 	vars := mux.Vars(r)
 	recipeID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
 		return
 	}
 
 	var req []models.AddRecipeIngredientRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
@@ -359,15 +359,15 @@ func (h *IngredientHandler) SetRecipeIngredients(w http.ResponseWriter, r *http.
 	if err != nil {
 		switch err {
 		case domain.ErrRecipeNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 		case domain.ErrIngredientNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case domain.ErrInvalidQuantity:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case domain.ErrInvalidUnit:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
-			writeErrorResponse(w, "Failed to update recipe ingredients", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to update recipe ingredients", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -375,9 +375,9 @@ func (h *IngredientHandler) SetRecipeIngredients(w http.ResponseWriter, r *http.
 	// Get updated ingredients to return
 	ingredients, err := h.ingredientService.GetRecipeIngredients(recipeID)
 	if err != nil {
-		writeErrorResponse(w, "Failed to fetch updated ingredients", http.StatusInternalServerError)
+		models.WriteErrorResponse(w, "Failed to fetch updated ingredients", http.StatusInternalServerError)
 		return
 	}
 
-	writeSuccessResponse(w, ingredients, http.StatusOK)
+	models.WriteSuccessResponse(w, ingredients, http.StatusOK)
 }

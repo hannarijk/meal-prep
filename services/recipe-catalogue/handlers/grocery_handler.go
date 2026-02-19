@@ -20,19 +20,19 @@ func NewGroceryHandler(groceryService service.GroceryService) *GroceryHandler {
 func (h *GroceryHandler) GenerateGroceryList(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
-		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
+		models.WriteErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 	_ = user
 
 	var req models.GroceryListRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	if len(req.RecipeIDs) == 0 {
-		writeErrorResponse(w, "At least one recipe ID is required", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "At least one recipe ID is required", http.StatusBadRequest)
 		return
 	}
 
@@ -40,12 +40,12 @@ func (h *GroceryHandler) GenerateGroceryList(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		switch err {
 		case domain.ErrRecipeNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
-			writeErrorResponse(w, "Failed to generate grocery list", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to generate grocery list", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, groceryList, http.StatusOK)
+	models.WriteSuccessResponse(w, groceryList, http.StatusOK)
 }

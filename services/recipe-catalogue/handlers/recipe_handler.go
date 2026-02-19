@@ -28,27 +28,27 @@ func (h *RecipeHandler) GetAllRecipes(w http.ResponseWriter, r *http.Request) {
 	if includeIngredients {
 		recipes, err := h.recipeService.GetAllRecipesWithIngredients()
 		if err != nil {
-			writeErrorResponse(w, "Failed to fetch recipes with ingredients", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to fetch recipes with ingredients", http.StatusInternalServerError)
 			return
 		}
-		writeSuccessResponse(w, recipes, http.StatusOK)
+		models.WriteSuccessResponse(w, recipes, http.StatusOK)
 		return
 	}
 
 	recipes, err := h.recipeService.GetAllRecipes()
 	if err != nil {
-		writeErrorResponse(w, "Failed to fetch recipes", http.StatusInternalServerError)
+		models.WriteErrorResponse(w, "Failed to fetch recipes", http.StatusInternalServerError)
 		return
 	}
 
-	writeSuccessResponse(w, recipes, http.StatusOK)
+	models.WriteSuccessResponse(w, recipes, http.StatusOK)
 }
 
 func (h *RecipeHandler) GetRecipeByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
 		return
 	}
 
@@ -59,13 +59,13 @@ func (h *RecipeHandler) GetRecipeByID(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			switch err {
 			case domain.ErrRecipeNotFound:
-				writeErrorResponse(w, err.Error(), http.StatusNotFound)
+				models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 			default:
-				writeErrorResponse(w, "Failed to fetch recipe with ingredients", http.StatusInternalServerError)
+				models.WriteErrorResponse(w, "Failed to fetch recipe with ingredients", http.StatusInternalServerError)
 			}
 			return
 		}
-		writeSuccessResponse(w, recipe, http.StatusOK)
+		models.WriteSuccessResponse(w, recipe, http.StatusOK)
 		return
 	}
 
@@ -73,31 +73,31 @@ func (h *RecipeHandler) GetRecipeByID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case domain.ErrRecipeNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 		default:
-			writeErrorResponse(w, "Failed to fetch recipe", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to fetch recipe", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, recipe, http.StatusOK)
+	models.WriteSuccessResponse(w, recipe, http.StatusOK)
 }
 
 func (h *RecipeHandler) GetAllCategories(w http.ResponseWriter, r *http.Request) {
 	categories, err := h.recipeService.GetAllCategories()
 	if err != nil {
-		writeErrorResponse(w, "Failed to fetch categories", http.StatusInternalServerError)
+		models.WriteErrorResponse(w, "Failed to fetch categories", http.StatusInternalServerError)
 		return
 	}
 
-	writeSuccessResponse(w, categories, http.StatusOK)
+	models.WriteSuccessResponse(w, categories, http.StatusOK)
 }
 
 func (h *RecipeHandler) GetRecipesByCategory(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	categoryID, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid category ID", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid category ID", http.StatusBadRequest)
 		return
 	}
 
@@ -108,15 +108,15 @@ func (h *RecipeHandler) GetRecipesByCategory(w http.ResponseWriter, r *http.Requ
 		if err != nil {
 			switch err {
 			case domain.ErrCategoryNotFound:
-				writeErrorResponse(w, err.Error(), http.StatusNotFound)
+				models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 			case domain.ErrInvalidCategory:
-				writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+				models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 			default:
-				writeErrorResponse(w, "Failed to fetch recipes with ingredients", http.StatusInternalServerError)
+				models.WriteErrorResponse(w, "Failed to fetch recipes with ingredients", http.StatusInternalServerError)
 			}
 			return
 		}
-		writeSuccessResponse(w, recipes, http.StatusOK)
+		models.WriteSuccessResponse(w, recipes, http.StatusOK)
 		return
 	}
 
@@ -124,29 +124,29 @@ func (h *RecipeHandler) GetRecipesByCategory(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		switch err {
 		case domain.ErrCategoryNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 		case domain.ErrInvalidCategory:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
-			writeErrorResponse(w, "Failed to fetch recipes", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to fetch recipes", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, recipes, http.StatusOK)
+	models.WriteSuccessResponse(w, recipes, http.StatusOK)
 }
 
 func (h *RecipeHandler) CreateRecipe(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
-		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
+		models.WriteErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 	_ = user // We have the authenticated user if needed for audit logs, etc.
 
 	var req models.CreateRecipeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
@@ -154,24 +154,24 @@ func (h *RecipeHandler) CreateRecipe(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case domain.ErrRecipeNameRequired:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case domain.ErrCategoryNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case domain.ErrInvalidCategory:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
-			writeErrorResponse(w, "Failed to create recipe", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to create recipe", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, recipe, http.StatusCreated)
+	models.WriteSuccessResponse(w, recipe, http.StatusCreated)
 }
 
 func (h *RecipeHandler) UpdateRecipe(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
-		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
+		models.WriteErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 	_ = user
@@ -179,13 +179,13 @@ func (h *RecipeHandler) UpdateRecipe(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
 		return
 	}
 
 	var req models.UpdateRecipeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
@@ -193,26 +193,26 @@ func (h *RecipeHandler) UpdateRecipe(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case domain.ErrRecipeNameRequired:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case domain.ErrRecipeNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 		case domain.ErrCategoryNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case domain.ErrInvalidCategory:
-			writeErrorResponse(w, err.Error(), http.StatusBadRequest)
+			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		default:
-			writeErrorResponse(w, "Failed to update recipe", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to update recipe", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, recipe, http.StatusOK)
+	models.WriteSuccessResponse(w, recipe, http.StatusOK)
 }
 
 func (h *RecipeHandler) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
 	user, ok := middleware.GetUserFromGatewayContext(r.Context())
 	if !ok {
-		writeErrorResponse(w, "Authentication required", http.StatusUnauthorized)
+		models.WriteErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
 	_ = user
@@ -220,7 +220,7 @@ func (h *RecipeHandler) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		writeErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid recipe ID", http.StatusBadRequest)
 		return
 	}
 
@@ -228,33 +228,33 @@ func (h *RecipeHandler) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case domain.ErrRecipeNotFound:
-			writeErrorResponse(w, err.Error(), http.StatusNotFound)
+			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
 		default:
-			writeErrorResponse(w, "Failed to delete recipe", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to delete recipe", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	writeSuccessResponse(w, map[string]string{"message": "Recipe deleted successfully"}, http.StatusNoContent)
+	models.WriteSuccessResponse(w, map[string]string{"message": "Recipe deleted successfully"}, http.StatusNoContent)
 }
 
 func (h *RecipeHandler) SearchRecipesByIngredients(w http.ResponseWriter, r *http.Request) {
 	// Parse ingredient IDs from query parameters
 	ingredientIDsParam := r.URL.Query().Get("ingredient_ids")
 	if ingredientIDsParam == "" {
-		writeErrorResponse(w, "ingredient_ids query parameter is required", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "ingredient_ids query parameter is required", http.StatusBadRequest)
 		return
 	}
 
 	// Parse comma-separated ingredient IDs
 	ingredientIDs, err := h.parseIngredientIDs(ingredientIDsParam)
 	if err != nil {
-		writeErrorResponse(w, "Invalid ingredient IDs format. Use comma-separated integers", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "Invalid ingredient IDs format. Use comma-separated integers", http.StatusBadRequest)
 		return
 	}
 
 	if len(ingredientIDs) == 0 {
-		writeErrorResponse(w, "At least one ingredient ID is required", http.StatusBadRequest)
+		models.WriteErrorResponse(w, "At least one ingredient ID is required", http.StatusBadRequest)
 		return
 	}
 
@@ -264,20 +264,20 @@ func (h *RecipeHandler) SearchRecipesByIngredients(w http.ResponseWriter, r *htt
 	if includeIngredients {
 		recipes, err := h.recipeService.SearchRecipesByIngredientsWithIngredients(ingredientIDs)
 		if err != nil {
-			writeErrorResponse(w, "Failed to search recipes with ingredients", http.StatusInternalServerError)
+			models.WriteErrorResponse(w, "Failed to search recipes with ingredients", http.StatusInternalServerError)
 			return
 		}
-		writeSuccessResponse(w, recipes, http.StatusOK)
+		models.WriteSuccessResponse(w, recipes, http.StatusOK)
 		return
 	}
 
 	recipes, err := h.recipeService.SearchRecipesByIngredients(ingredientIDs)
 	if err != nil {
-		writeErrorResponse(w, "Failed to search recipes", http.StatusInternalServerError)
+		models.WriteErrorResponse(w, "Failed to search recipes", http.StatusInternalServerError)
 		return
 	}
 
-	writeSuccessResponse(w, recipes, http.StatusOK)
+	models.WriteSuccessResponse(w, recipes, http.StatusOK)
 }
 
 func (h *RecipeHandler) parseIngredientIDs(ingredientIDsParam string) ([]int, error) {
@@ -304,18 +304,3 @@ func (h *RecipeHandler) parseIngredientIDs(ingredientIDsParam string) ([]int, er
 	return ingredientIDs, nil
 }
 
-func writeErrorResponse(w http.ResponseWriter, message string, code int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(models.ErrorResponse{
-		Error:   "recipe_catalogue_error",
-		Code:    code,
-		Message: message,
-	})
-}
-
-func writeSuccessResponse(w http.ResponseWriter, data interface{}, code int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(data)
-}

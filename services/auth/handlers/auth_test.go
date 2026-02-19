@@ -67,7 +67,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedResponse: map[string]interface{}{
-				"error":   "auth_error",
+				"error":   "error",
 				"code":    float64(400),
 				"message": "Invalid JSON",
 			},
@@ -82,7 +82,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedResponse: map[string]interface{}{
-				"error":   "auth_error",
+				"error":   "error",
 				"code":    float64(400),
 				"message": "Email and password are required",
 			},
@@ -97,7 +97,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedResponse: map[string]interface{}{
-				"error":   "auth_error",
+				"error":   "error",
 				"code":    float64(400),
 				"message": "Email and password are required",
 			},
@@ -113,7 +113,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			},
 			expectedStatus: http.StatusConflict,
 			expectedResponse: map[string]interface{}{
-				"error":   "auth_error",
+				"error":   "error",
 				"code":    float64(409),
 				"message": service.ErrUserExists.Error(),
 			},
@@ -129,7 +129,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedResponse: map[string]interface{}{
-				"error":   "auth_error",
+				"error":   "error",
 				"code":    float64(400),
 				"message": service.ErrWeakPassword.Error(),
 			},
@@ -145,7 +145,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectedResponse: map[string]interface{}{
-				"error":   "auth_error",
+				"error":   "error",
 				"code":    float64(500),
 				"message": "Internal server error",
 			},

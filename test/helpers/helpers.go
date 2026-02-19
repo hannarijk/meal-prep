@@ -9,10 +9,10 @@ import (
 	"meal-prep/shared/logging"
 	"net/http"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go/wait"
 
@@ -279,9 +279,7 @@ func (c *TestHttpClient) MakeAuthenticatedRequest(t *testing.T, method, url stri
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	userID := 42 // Test user
-	email := "test@example.com"
-	InjectKongHeaders(req, userID, email)
+	InjectKongHeaders(req, c.userID, c.email)
 
 	resp, err := c.Client.Do(req)
 	require.NoError(t, err, "HTTP request failed")
@@ -294,9 +292,27 @@ func (c *TestHttpClient) MakeAuthenticatedRequest(t *testing.T, method, url stri
 // =============================================================================
 
 func InjectKongHeaders(req *http.Request, userID int, email string) {
-	req.Header.Set("X-User-ID", strconv.Itoa(userID))
-	req.Header.Set("X-Email", email)
-	req.Header.Set("X-Forwarded-By", "kong-gateway")
+	token := generateTestJWT(userID, email)
+	req.Header.Set("Authorization", "Bearer "+token)
+}
+
+// generateTestJWT creates a JWT with the given claims.
+// The middleware uses ParseUnverified, so the signature is not validated.
+func generateTestJWT(userID int, email string) string {
+	type testClaims struct {
+		UserID int    `json:"user_id"`
+		Email  string `json:"email"`
+		jwt.RegisteredClaims
+	}
+	claims := testClaims{
+		UserID: userID,
+		Email:  email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+		},
+	}
+	token, _ := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("test-secret"))
+	return token
 }
 
 func StringPtr(s string) *string {

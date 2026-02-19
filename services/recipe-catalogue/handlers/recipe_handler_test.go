@@ -83,7 +83,7 @@ func TestRecipeHandler_GetAllRecipes_ServiceError(t *testing.T) {
 	var response models.ErrorResponse
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 	assert.NoError(t, err)
-	assert.Equal(t, "recipe_catalogue_error", response.Error)
+	assert.Equal(t, "error", response.Error)
 	assert.Equal(t, "Failed to fetch recipes", response.Message)
 
 	setup.recipeService.AssertExpectations(t)
