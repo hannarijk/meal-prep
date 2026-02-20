@@ -26,6 +26,14 @@ func (m *MockUserRepository) GetByEmail(email string) (*models.User, string, err
 	return args.Get(0).(*models.User), args.String(1), args.Error(2)
 }
 
+func (m *MockUserRepository) GetByID(id int) (*models.User, error) {
+	args := m.Called(id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.User), args.Error(1)
+}
+
 func (m *MockUserRepository) EmailExists(email string) (bool, error) {
 	args := m.Called(email)
 	return args.Bool(0), args.Error(1)

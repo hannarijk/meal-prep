@@ -115,6 +115,31 @@ func (suite *AuthRepositoryIntegrationSuite) TestGetByEmail_NotFound() {
 	assert.Empty(suite.T(), hash)
 }
 
+func (suite *AuthRepositoryIntegrationSuite) TestGetByID_RealData() {
+	email := "getbyid-test@example.com"
+	passwordHash := "test_hash_value"
+
+	// Create user first
+	createdUser, err := suite.repo.Create(email, passwordHash)
+	assert.NoError(suite.T(), err)
+
+	// Retrieve user by ID
+	retrievedUser, err := suite.repo.GetByID(createdUser.ID)
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), retrievedUser)
+	assert.Equal(suite.T(), createdUser.ID, retrievedUser.ID)
+	assert.Equal(suite.T(), email, retrievedUser.Email)
+	assert.NotZero(suite.T(), retrievedUser.CreatedAt)
+	assert.NotZero(suite.T(), retrievedUser.UpdatedAt)
+}
+
+func (suite *AuthRepositoryIntegrationSuite) TestGetByID_NotFound() {
+	// Try to get non-existent user by ID
+	user, err := suite.repo.GetByID(999999)
+	assert.Error(suite.T(), err)
+	assert.Nil(suite.T(), user)
+}
+
 // Test SQL injection protection (real database will catch this)
 func (suite *AuthRepositoryIntegrationSuite) TestEmailExists_SQLInjectionProtection() {
 	maliciousEmail := "test'; DROP TABLE auth.users; --"

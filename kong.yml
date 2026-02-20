@@ -36,6 +36,22 @@ routes:
   # ==========================================
   # One route for all auth endpoints
 
+  - name: auth-me-protected
+    service: auth-service
+    paths:
+      - /auth/me
+    methods:
+      - GET
+    strip_path: true
+    plugins:
+      - name: jwt
+        config:
+          header_names:
+            - Authorization
+          claims_to_verify:
+            - exp
+            - nbf
+
   - name: auth-routes
     service: auth-service
     paths:

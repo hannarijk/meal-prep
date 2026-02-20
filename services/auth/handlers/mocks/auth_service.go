@@ -25,3 +25,11 @@ func (m *MockAuthService) Login(email, password string) (*models.AuthResponse, e
 	}
 	return args.Get(0).(*models.AuthResponse), args.Error(1)
 }
+
+func (m *MockAuthService) Me(userID int) (*models.User, error) {
+	args := m.Called(userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.User), args.Error(1)
+}

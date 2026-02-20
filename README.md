@@ -16,8 +16,8 @@ graph TB
         MOBILE[Mobile App]
     end
 
-    subgraph "API Gateway / Load Balancer"
-        LB[Load Balancer]
+    subgraph "API Gateway"
+        LB[Kong API Gateway]
     end
 
     subgraph "Microservices"
@@ -40,13 +40,12 @@ graph TB
     RECIPES --> DB
     REC --> DB
 
-    REC -.->|JWT Validation| AUTH
-    RECIPES -.->|JWT Validation| AUTH
+    LB -.->|JWT Validation| AUTH
 ```
 
 ### Service Communication
 
-- **Authentication Flow**: JWT tokens issued by Auth service, validated by other services
+- **Authentication Flow**: JWT tokens issued by Auth service, validated by Kong before requests reach services
 - **Data Independence**: Each service manages its own database schema
 - **Loose Coupling**: Services communicate via REST APIs with standardized error responses
 
@@ -102,6 +101,7 @@ curl http://localhost:8003/health  # Recommendations
 | `/health` | GET | Health check | No |
 | `/register` | POST | User registration | No |
 | `/login` | POST | User authentication | No |
+| `/me` | GET | Get current user | **Yes** |
 
 #### Registration
 
@@ -140,6 +140,7 @@ curl -X POST http://localhost:8001/register \
 | `/recipes/{id}` | DELETE | Delete recipe       | **Yes** |
 | `/categories` | GET | List categories     | No |
 | `/categories/{id}/recipes` | GET | Recipes by category | No |
+| `/recipes/search` | GET | Search recipes by ingredients | No |
 
 #### Ingredient Management
 
@@ -329,12 +330,9 @@ meal-prep/
 ├── shared/                  # Shared libraries
 │   ├── database/           # Database connections
 │   ├── middleware/         # HTTP middleware
-│   ├── models/            # Data models
-│   ├── utils/             # Utilities (JWT, etc.)
+│   ├── models/            # Data models & response helpers
 │   └── logging/           # Structured logging
-├── test/                   # Integration & E2E tests
-├── scripts/               # Database scripts
-└── deployments/          # Kubernetes manifests
+└── test/                   # Integration & E2E tests
 ```
 
 ### Local Development
@@ -535,13 +533,13 @@ make test-integration
 |------------------|------|-------------|
 | Auth             | 8001 | User authentication |
 | Recipe Catalogue | 8002 | Recipe management |
-| Recommendations  | 8003 | AI recommendations |
+| Recommendations  | 8003 | Recipe recommendations |
 | PostgreSQL       | 5432 | Database |
 
 ## Examples
 
 ### Complete User Journey
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NTY3NDA5NzEsIm5iZiI6MTc1NjY1NDU3MSwiaWF0IjoxNzU2NjU0NTcxfQ.U4brcR8gdfHXNjTehsmDLUKtEOQXws3c9df67BYfCh8
+
 ```bash
 # 1. Register new user
 RESPONSE=$(curl -s -X POST http://localhost:8001/register \
@@ -593,13 +591,13 @@ curl -X POST http://localhost:8002/recipes \
 ```bash
 # Test without authentication
 curl http://localhost:8003/recommendations
-````
+```
 
 ```bash
 # Test invalid algorithm
 curl -H "Authorization: Bearer $TOKEN" \
   "http://localhost:8003/recommendations?algorithm=invalid"
-````
+```
 Expected Result: Success (200) with hybrid recommendations:
 ```json
 {

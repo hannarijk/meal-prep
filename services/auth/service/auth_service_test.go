@@ -298,6 +298,64 @@ func TestAuthService_validateInput(t *testing.T) {
 	}
 }
 
+func TestAuthService_Me(t *testing.T) {
+	setupTestJWTEnv(t)
+
+	tests := []struct {
+		name          string
+		userID        int
+		setupMocks    func(*mocks.MockUserRepository)
+		expectedError bool
+		expectUser    bool
+	}{
+		{
+			name:   "success",
+			userID: 1,
+			setupMocks: func(mockRepo *mocks.MockUserRepository) {
+				mockRepo.On("GetByID", 1).Return(
+					&models.User{
+						ID:        1,
+						Email:     "user@example.com",
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					}, nil)
+			},
+			expectedError: false,
+			expectUser:    true,
+		},
+		{
+			name:   "user_not_found",
+			userID: 99,
+			setupMocks: func(mockRepo *mocks.MockUserRepository) {
+				mockRepo.On("GetByID", 99).Return((*models.User)(nil), errors.New("sql: no rows in result set"))
+			},
+			expectedError: true,
+			expectUser:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRepo := new(mocks.MockUserRepository)
+			tt.setupMocks(mockRepo)
+			svc := NewAuthService(mockRepo)
+
+			result, err := svc.Me(tt.userID)
+
+			if tt.expectedError {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.userID, result.ID)
+			}
+
+			mockRepo.AssertExpectations(t)
+		})
+	}
+}
+
 // =============================================================================
 // TEST HELPERS
 // =============================================================================

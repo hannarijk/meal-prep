@@ -19,6 +19,7 @@ var (
 type AuthService interface {
 	Register(email, password string) (*models.AuthResponse, error)
 	Login(email, password string) (*models.AuthResponse, error)
+	Me(userID int) (*models.User, error)
 }
 
 type authService struct {
@@ -36,6 +37,10 @@ func NewAuthService(userRepo repository.UserRepository) AuthService {
 		userRepo:     userRepo,
 		jwtGenerator: jwt.NewGenerator(jwtConfig),
 	}
+}
+
+func (s *authService) Me(userID int) (*models.User, error) {
+	return s.userRepo.GetByID(userID)
 }
 
 func (s *authService) Register(email, password string) (*models.AuthResponse, error) {

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	"meal-prep/services/auth/handlers/mocks"
 	"meal-prep/services/auth/service"
+	"meal-prep/shared/middleware"
 	"meal-prep/shared/models"
 
 	"github.com/stretchr/testify/assert"
@@ -307,6 +309,110 @@ func TestAuthHandler_Login(t *testing.T) {
 				assert.Contains(t, response, "error")
 				assert.Contains(t, response, "message")
 				assert.NotContains(t, response, "token")
+			}
+
+			mockService.AssertExpectations(t)
+		})
+	}
+}
+
+func TestAuthHandler_Me(t *testing.T) {
+	now := time.Now()
+
+	tests := []struct {
+		name             string
+		setupContext     func(r *http.Request) *http.Request
+		setupMocks       func(*mocks.MockAuthService)
+		expectedStatus   int
+		expectedResponse map[string]interface{}
+		description      string
+	}{
+		{
+			name:        "success",
+			description: "Valid JWT context should return 200 with user",
+			setupContext: func(r *http.Request) *http.Request {
+				ctx := context.WithValue(r.Context(), middleware.UserCtxKey, &middleware.UserContext{
+					UserID: 1,
+					Email:  "user@example.com",
+				})
+				return r.WithContext(ctx)
+			},
+			setupMocks: func(mockService *mocks.MockAuthService) {
+				mockService.On("Me", 1).Return(
+					&models.User{
+						ID:        1,
+						Email:     "user@example.com",
+						CreatedAt: now,
+						UpdatedAt: now,
+					}, nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectedResponse: map[string]interface{}{
+				"id":    float64(1),
+				"email": "user@example.com",
+			},
+		},
+		{
+			name:        "missing_context",
+			description: "Missing user context should return 401",
+			setupContext: func(r *http.Request) *http.Request {
+				return r // no context injected
+			},
+			setupMocks:     func(mockService *mocks.MockAuthService) {},
+			expectedStatus: http.StatusUnauthorized,
+			expectedResponse: map[string]interface{}{
+				"error":   "error",
+				"code":    float64(401),
+				"message": "Unauthorized",
+			},
+		},
+		{
+			name:        "user_not_found",
+			description: "User deleted from DB after token issued should return 404",
+			setupContext: func(r *http.Request) *http.Request {
+				ctx := context.WithValue(r.Context(), middleware.UserCtxKey, &middleware.UserContext{
+					UserID: 99,
+					Email:  "ghost@example.com",
+				})
+				return r.WithContext(ctx)
+			},
+			setupMocks: func(mockService *mocks.MockAuthService) {
+				mockService.On("Me", 99).Return((*models.User)(nil), errors.New("sql: no rows in result set"))
+			},
+			expectedStatus: http.StatusNotFound,
+			expectedResponse: map[string]interface{}{
+				"error":   "error",
+				"code":    float64(404),
+				"message": "User not found",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockService := new(mocks.MockAuthService)
+			tt.setupMocks(mockService)
+			handler := NewAuthHandler(mockService)
+
+			req := httptest.NewRequest("GET", "/me", nil)
+			req = tt.setupContext(req)
+			recorder := httptest.NewRecorder()
+
+			handler.Me(recorder, req)
+
+			assert.Equal(t, tt.expectedStatus, recorder.Code)
+			assert.Equal(t, "application/json", recorder.Header().Get("Content-Type"))
+
+			var response map[string]interface{}
+			err := json.NewDecoder(recorder.Body).Decode(&response)
+			assert.NoError(t, err)
+
+			for key, expectedValue := range tt.expectedResponse {
+				if actualValue, exists := response[key]; exists {
+					assert.Equal(t, expectedValue, actualValue, "Response field %s mismatch", key)
+				} else {
+					t.Errorf("Expected response field %s not found in response", key)
+				}
 			}
 
 			mockService.AssertExpectations(t)

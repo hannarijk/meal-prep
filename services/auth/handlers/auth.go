@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"meal-prep/services/auth/service"
+	"meal-prep/shared/middleware"
 	"meal-prep/shared/models"
 )
 
@@ -46,6 +47,22 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	models.WriteSuccessResponse(w, response, http.StatusCreated)
+}
+
+func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
+	user, ok := middleware.GetUserFromGatewayContext(r.Context())
+	if !ok {
+		models.WriteErrorResponse(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	result, err := h.authService.Me(user.UserID)
+	if err != nil {
+		models.WriteErrorResponse(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	models.WriteSuccessResponse(w, result, http.StatusOK)
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {

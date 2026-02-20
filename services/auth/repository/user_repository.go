@@ -8,6 +8,7 @@ import (
 type UserRepository interface {
 	Create(email, passwordHash string) (*models.User, error)
 	GetByEmail(email string) (*models.User, string, error)
+	GetByID(id int) (*models.User, error)
 	EmailExists(email string) (bool, error)
 }
 
@@ -47,6 +48,18 @@ func (r *userRepository) GetByEmail(email string) (*models.User, string, error) 
 		return nil, "", err
 	}
 	return &user, passwordHash, nil
+}
+
+func (r *userRepository) GetByID(id int) (*models.User, error) {
+	var user models.User
+	err := r.db.QueryRow(`
+		SELECT id, email, created_at, updated_at
+		FROM auth.users WHERE id = $1`, id).Scan(
+		&user.ID, &user.Email, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (r *userRepository) EmailExists(email string) (bool, error) {
