@@ -101,7 +101,7 @@ curl http://localhost:8003/health  # Recommendations
 | `/health` | GET | Health check | No |
 | `/register` | POST | User registration | No |
 | `/login` | POST | User authentication | No |
-| `/me` | GET | Get current user | **Yes** |
+| `/auth/me` | GET | Get current user | **Yes** |
 
 #### Registration
 

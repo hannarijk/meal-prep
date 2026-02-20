@@ -42,7 +42,7 @@ routes:
       - /auth/me
     methods:
       - GET
-    strip_path: true
+    strip_path: false
     plugins:
       - name: jwt
         config:
@@ -180,7 +180,7 @@ consumers:
     jwt_secrets:
       - key: meal-prep-auth
         algorithm: HS256
-        secret: your-super-secret-jwt-key-change-this-in-production # ${{JWT_SECRET}}
+        secret: dev-secret-key-change-in-production # ${{JWT_SECRET}}
         # Environment variable from docker-compose.yml
 
 # ============================================

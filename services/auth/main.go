@@ -45,7 +45,7 @@ func main() {
 
 	router.HandleFunc("/register", authHandler.Register).Methods("POST")
 	router.HandleFunc("/login", authHandler.Login).Methods("POST")
-	router.Handle("/me", middleware.ExtractUserFromGatewayHeaders(
+	router.Handle("/auth/me", middleware.ExtractUserFromGatewayHeaders(
 		http.HandlerFunc(authHandler.Me),
 	)).Methods("GET")
 	router.HandleFunc("/health", healthCheck).Methods("GET")
