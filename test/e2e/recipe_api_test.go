@@ -185,9 +185,12 @@ func (suite *RecipeE2ETestSuite) TestPublicRecipeBrowsing_CompleteUserJourney() 
 	resp := suite.testHttpClient.MakeRequest(suite.T(), "GET", baseURL+"/recipes", nil)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var recipes []map[string]interface{}
-	err := json.NewDecoder(resp.Body).Decode(&recipes)
+	var recipesResp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	err := json.NewDecoder(resp.Body).Decode(&recipesResp)
 	assert.NoError(suite.T(), err)
+	recipes := recipesResp.Data
 	assert.GreaterOrEqual(suite.T(), len(recipes), 1, "Should have seeded recipes")
 
 	firstRecipe := recipes[0]
@@ -219,9 +222,12 @@ func (suite *RecipeE2ETestSuite) TestPublicRecipeBrowsing_CompleteUserJourney() 
 	resp = suite.testHttpClient.MakeRequest(suite.T(), "GET", fmt.Sprintf("%s/categories/%d/recipes", baseURL, categoryID), nil)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var categoryRecipes []map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&categoryRecipes)
+	var categoryRecipesResp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&categoryRecipesResp)
 	assert.NoError(suite.T(), err)
+	categoryRecipes := categoryRecipesResp.Data
 
 	// Verify all recipes belong to the requested category
 	for _, recipe := range categoryRecipes {
@@ -340,9 +346,12 @@ func (suite *RecipeE2ETestSuite) TestRecipeCRUD_CompleteLifecycle() {
 	resp = suite.testHttpClient.MakeRequest(suite.T(), "GET", baseURL+"/recipes", nil)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var finalRecipes []map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&finalRecipes)
+	var finalRecipesResp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&finalRecipesResp)
 	assert.NoError(suite.T(), err)
+	finalRecipes := finalRecipesResp.Data
 
 	for _, recipe := range finalRecipes {
 		assert.NotEqual(suite.T(), float64(recipeID), recipe["id"], "Deleted recipe should not appear in list")

@@ -15,12 +15,12 @@ type MockIngredientService struct {
 // BASIC INGREDIENT OPERATIONS
 // =============================================================================
 
-func (m *MockIngredientService) GetAllIngredients() ([]models.Ingredient, error) {
-	args := m.Called()
+func (m *MockIngredientService) GetAllIngredients(params models.PaginationParams) ([]models.Ingredient, models.PaginationMeta, error) {
+	args := m.Called(params)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.Get(1).(models.PaginationMeta), args.Error(2)
 	}
-	return args.Get(0).([]models.Ingredient), args.Error(1)
+	return args.Get(0).([]models.Ingredient), args.Get(1).(models.PaginationMeta), args.Error(2)
 }
 
 func (m *MockIngredientService) GetIngredientByID(id int) (*models.Ingredient, error) {
@@ -31,20 +31,20 @@ func (m *MockIngredientService) GetIngredientByID(id int) (*models.Ingredient, e
 	return args.Get(0).(*models.Ingredient), args.Error(1)
 }
 
-func (m *MockIngredientService) GetIngredientsByCategory(category string) ([]models.Ingredient, error) {
-	args := m.Called(category)
+func (m *MockIngredientService) GetIngredientsByCategory(category string, params models.PaginationParams) ([]models.Ingredient, models.PaginationMeta, error) {
+	args := m.Called(category, params)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.Get(1).(models.PaginationMeta), args.Error(2)
 	}
-	return args.Get(0).([]models.Ingredient), args.Error(1)
+	return args.Get(0).([]models.Ingredient), args.Get(1).(models.PaginationMeta), args.Error(2)
 }
 
-func (m *MockIngredientService) SearchIngredients(query string) ([]models.Ingredient, error) {
-	args := m.Called(query)
+func (m *MockIngredientService) SearchIngredients(query string, params models.PaginationParams) ([]models.Ingredient, models.PaginationMeta, error) {
+	args := m.Called(query, params)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.Get(1).(models.PaginationMeta), args.Error(2)
 	}
-	return args.Get(0).([]models.Ingredient), args.Error(1)
+	return args.Get(0).([]models.Ingredient), args.Get(1).(models.PaginationMeta), args.Error(2)
 }
 
 func (m *MockIngredientService) CreateIngredient(req models.CreateIngredientRequest) (*models.Ingredient, error) {
@@ -110,10 +110,10 @@ func (m *MockIngredientService) SetRecipeIngredients(recipeID int, ingredients [
 // COMPLEX OPERATIONS
 // =============================================================================
 
-func (m *MockIngredientService) GetRecipesUsingIngredient(ingredientID int) ([]models.Recipe, error) {
-	args := m.Called(ingredientID)
+func (m *MockIngredientService) GetRecipesUsingIngredient(ingredientID int, params models.PaginationParams) ([]models.Recipe, models.PaginationMeta, error) {
+	args := m.Called(ingredientID, params)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.Get(1).(models.PaginationMeta), args.Error(2)
 	}
-	return args.Get(0).([]models.Recipe), args.Error(1)
+	return args.Get(0).([]models.Recipe), args.Get(1).(models.PaginationMeta), args.Error(2)
 }

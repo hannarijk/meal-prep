@@ -10,22 +10,22 @@ import (
 )
 
 type RecipeService interface {
-	GetAllRecipes() ([]models.Recipe, error)
+	GetAllRecipes(params models.PaginationParams) ([]models.Recipe, models.PaginationMeta, error)
 	GetRecipeByID(id int) (*models.Recipe, error)
-	GetRecipesByCategory(categoryID int) ([]models.Recipe, error)
+	GetRecipesByCategory(categoryID int, params models.PaginationParams) ([]models.Recipe, models.PaginationMeta, error)
 	CreateRecipe(userID int, req models.CreateRecipeRequest) (*models.Recipe, error)
 	UpdateRecipe(userID int, id int, req models.UpdateRecipeRequest) (*models.Recipe, error)
 	DeleteRecipe(userID int, id int) error
 	GetAllCategories() ([]models.Category, error)
 
-	GetAllRecipesWithIngredients() ([]models.RecipeWithIngredients, error)
+	GetAllRecipesWithIngredients(params models.PaginationParams) ([]models.RecipeWithIngredients, models.PaginationMeta, error)
 	GetRecipeByIDWithIngredients(id int) (*models.RecipeWithIngredients, error)
-	GetRecipesByCategoryWithIngredients(categoryID int) ([]models.RecipeWithIngredients, error)
+	GetRecipesByCategoryWithIngredients(categoryID int, params models.PaginationParams) ([]models.RecipeWithIngredients, models.PaginationMeta, error)
 	CreateRecipeWithIngredients(userID int, req models.CreateRecipeWithIngredientsRequest) (*models.RecipeWithIngredients, error)
 	UpdateRecipeWithIngredients(userID int, id int, req models.UpdateRecipeWithIngredientsRequest) (*models.RecipeWithIngredients, error)
 
-	SearchRecipesByIngredients(ingredientIDs []int) ([]models.Recipe, error)
-	SearchRecipesByIngredientsWithIngredients(ingredientIDs []int) ([]models.RecipeWithIngredients, error)
+	SearchRecipesByIngredients(ingredientIDs []int, params models.PaginationParams) ([]models.Recipe, models.PaginationMeta, error)
+	SearchRecipesByIngredientsWithIngredients(ingredientIDs []int, params models.PaginationParams) ([]models.RecipeWithIngredients, models.PaginationMeta, error)
 }
 
 type recipeService struct {
@@ -42,8 +42,12 @@ func NewRecipeService(recipeRepo repository.RecipeRepository, categoryRepo repos
 	}
 }
 
-func (s *recipeService) GetAllRecipes() ([]models.Recipe, error) {
-	return s.recipeRepo.GetAll()
+func (s *recipeService) GetAllRecipes(params models.PaginationParams) ([]models.Recipe, models.PaginationMeta, error) {
+	recipes, total, err := s.recipeRepo.GetAll(params)
+	if err != nil {
+		return nil, models.PaginationMeta{}, err
+	}
+	return recipes, models.NewPaginationMeta(params, total), nil
 }
 
 func (s *recipeService) GetRecipeByID(id int) (*models.Recipe, error) {
@@ -62,20 +66,24 @@ func (s *recipeService) GetRecipeByID(id int) (*models.Recipe, error) {
 	return recipe, nil
 }
 
-func (s *recipeService) GetRecipesByCategory(categoryID int) ([]models.Recipe, error) {
+func (s *recipeService) GetRecipesByCategory(categoryID int, params models.PaginationParams) ([]models.Recipe, models.PaginationMeta, error) {
 	if categoryID <= 0 {
-		return nil, domain.ErrInvalidCategory
+		return nil, models.PaginationMeta{}, domain.ErrInvalidCategory
 	}
 
 	exists, err := s.categoryRepo.Exists(categoryID)
 	if err != nil {
-		return nil, err
+		return nil, models.PaginationMeta{}, err
 	}
 	if !exists {
-		return nil, domain.ErrCategoryNotFound
+		return nil, models.PaginationMeta{}, domain.ErrCategoryNotFound
 	}
 
-	return s.recipeRepo.GetByCategory(categoryID)
+	recipes, total, err := s.recipeRepo.GetByCategory(categoryID, params)
+	if err != nil {
+		return nil, models.PaginationMeta{}, err
+	}
+	return recipes, models.NewPaginationMeta(params, total), nil
 }
 
 func (s *recipeService) CreateRecipe(userID int, req models.CreateRecipeRequest) (*models.Recipe, error) {
@@ -168,8 +176,12 @@ func (s *recipeService) GetAllCategories() ([]models.Category, error) {
 	return s.categoryRepo.GetAll()
 }
 
-func (s *recipeService) GetAllRecipesWithIngredients() ([]models.RecipeWithIngredients, error) {
-	return s.recipeRepo.GetAllWithIngredients()
+func (s *recipeService) GetAllRecipesWithIngredients(params models.PaginationParams) ([]models.RecipeWithIngredients, models.PaginationMeta, error) {
+	recipes, total, err := s.recipeRepo.GetAllWithIngredients(params)
+	if err != nil {
+		return nil, models.PaginationMeta{}, err
+	}
+	return recipes, models.NewPaginationMeta(params, total), nil
 }
 
 func (s *recipeService) GetRecipeByIDWithIngredients(id int) (*models.RecipeWithIngredients, error) {
@@ -188,20 +200,24 @@ func (s *recipeService) GetRecipeByIDWithIngredients(id int) (*models.RecipeWith
 	return recipe, nil
 }
 
-func (s *recipeService) GetRecipesByCategoryWithIngredients(categoryID int) ([]models.RecipeWithIngredients, error) {
+func (s *recipeService) GetRecipesByCategoryWithIngredients(categoryID int, params models.PaginationParams) ([]models.RecipeWithIngredients, models.PaginationMeta, error) {
 	if categoryID <= 0 {
-		return nil, domain.ErrInvalidCategory
+		return nil, models.PaginationMeta{}, domain.ErrInvalidCategory
 	}
 
 	exists, err := s.categoryRepo.Exists(categoryID)
 	if err != nil {
-		return nil, err
+		return nil, models.PaginationMeta{}, err
 	}
 	if !exists {
-		return nil, domain.ErrCategoryNotFound
+		return nil, models.PaginationMeta{}, domain.ErrCategoryNotFound
 	}
 
-	return s.recipeRepo.GetByCategoryWithIngredients(categoryID)
+	recipes, total, err := s.recipeRepo.GetByCategoryWithIngredients(categoryID, params)
+	if err != nil {
+		return nil, models.PaginationMeta{}, err
+	}
+	return recipes, models.NewPaginationMeta(params, total), nil
 }
 
 func (s *recipeService) CreateRecipeWithIngredients(userID int, req models.CreateRecipeWithIngredientsRequest) (*models.RecipeWithIngredients, error) {
@@ -316,46 +332,54 @@ func (s *recipeService) UpdateRecipeWithIngredients(userID int, id int, req mode
 	return s.recipeRepo.UpdateWithIngredients(id, req)
 }
 
-func (s *recipeService) SearchRecipesByIngredients(ingredientIDs []int) ([]models.Recipe, error) {
+func (s *recipeService) SearchRecipesByIngredients(ingredientIDs []int, params models.PaginationParams) ([]models.Recipe, models.PaginationMeta, error) {
 	if len(ingredientIDs) == 0 {
-		return []models.Recipe{}, nil
+		return []models.Recipe{}, models.NewPaginationMeta(params, 0), nil
 	}
 
 	for _, ingredientID := range ingredientIDs {
 		if ingredientID <= 0 {
-			return nil, domain.ErrIngredientNotFound
+			return nil, models.PaginationMeta{}, domain.ErrIngredientNotFound
 		}
 
 		exists, err := s.ingredientRepo.IngredientExists(ingredientID)
 		if err != nil {
-			return nil, err
+			return nil, models.PaginationMeta{}, err
 		}
 		if !exists {
-			return nil, domain.ErrIngredientNotFound
+			return nil, models.PaginationMeta{}, domain.ErrIngredientNotFound
 		}
 	}
 
-	return s.recipeRepo.SearchRecipesByIngredients(ingredientIDs)
+	recipes, total, err := s.recipeRepo.SearchRecipesByIngredients(ingredientIDs, params)
+	if err != nil {
+		return nil, models.PaginationMeta{}, err
+	}
+	return recipes, models.NewPaginationMeta(params, total), nil
 }
 
-func (s *recipeService) SearchRecipesByIngredientsWithIngredients(ingredientIDs []int) ([]models.RecipeWithIngredients, error) {
+func (s *recipeService) SearchRecipesByIngredientsWithIngredients(ingredientIDs []int, params models.PaginationParams) ([]models.RecipeWithIngredients, models.PaginationMeta, error) {
 	if len(ingredientIDs) == 0 {
-		return []models.RecipeWithIngredients{}, nil
+		return []models.RecipeWithIngredients{}, models.NewPaginationMeta(params, 0), nil
 	}
 
 	for _, ingredientID := range ingredientIDs {
 		if ingredientID <= 0 {
-			return nil, domain.ErrIngredientNotFound
+			return nil, models.PaginationMeta{}, domain.ErrIngredientNotFound
 		}
 
 		exists, err := s.ingredientRepo.IngredientExists(ingredientID)
 		if err != nil {
-			return nil, err
+			return nil, models.PaginationMeta{}, err
 		}
 		if !exists {
-			return nil, domain.ErrIngredientNotFound
+			return nil, models.PaginationMeta{}, domain.ErrIngredientNotFound
 		}
 	}
 
-	return s.recipeRepo.SearchRecipesByIngredientsWithIngredients(ingredientIDs)
+	recipes, total, err := s.recipeRepo.SearchRecipesByIngredientsWithIngredients(ingredientIDs, params)
+	if err != nil {
+		return nil, models.PaginationMeta{}, err
+	}
+	return recipes, models.NewPaginationMeta(params, total), nil
 }

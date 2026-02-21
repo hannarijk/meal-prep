@@ -169,9 +169,12 @@ func (suite *IngredientE2ETestSuite) TestPublicIngredientBrowsing_CompleteUserJo
 	resp := suite.testHttpClient.MakeRequest(suite.T(), "GET", baseURL+"/ingredients", nil)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var ingredients []map[string]interface{}
-	err := json.NewDecoder(resp.Body).Decode(&ingredients)
+	var ingredientsResp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	err := json.NewDecoder(resp.Body).Decode(&ingredientsResp)
 	assert.NoError(suite.T(), err)
+	ingredients := ingredientsResp.Data
 	assert.GreaterOrEqual(suite.T(), len(ingredients), 4, "Should have seeded ingredients")
 
 	// Find tomato ingredient for detailed testing
@@ -201,9 +204,12 @@ func (suite *IngredientE2ETestSuite) TestPublicIngredientBrowsing_CompleteUserJo
 	resp = suite.testHttpClient.MakeRequest(suite.T(), "GET", fmt.Sprintf("%s/ingredients/%d/recipes", baseURL, tomatoID), nil)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var recipesUsingTomato []map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&recipesUsingTomato)
+	var recipesUsingTomatoResp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&recipesUsingTomatoResp)
 	assert.NoError(suite.T(), err)
+	recipesUsingTomato := recipesUsingTomatoResp.Data
 	assert.GreaterOrEqual(suite.T(), len(recipesUsingTomato), 1, "Should find recipes using tomato")
 
 	// Verify the recipe contains expected information

@@ -37,6 +37,8 @@ func setupRecipeServiceTest() *recipeServiceTestSetup {
 	}
 }
 
+var defaultParams = models.PaginationParams{Page: 1, PerPage: 20}
+
 // =============================================================================
 // GET ALL RECIPES TESTS
 // =============================================================================
@@ -48,13 +50,14 @@ func TestRecipeService_GetAllRecipes_Success(t *testing.T) {
 		testdata.NewRecipeBuilder().WithID(2).WithName("Recipe 2").Build(),
 	}
 
-	setup.recipeRepo.On("GetAll").Return(expectedRecipes, nil)
+	setup.recipeRepo.On("GetAll", defaultParams).Return(expectedRecipes, 2, nil)
 
-	result, err := setup.service.GetAllRecipes()
+	result, meta, err := setup.service.GetAllRecipes(defaultParams)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 2)
 	assert.Equal(t, "Recipe 1", result[0].Name)
+	assert.Equal(t, 2, meta.Total)
 	setup.recipeRepo.AssertExpectations(t)
 }
 
@@ -62,9 +65,9 @@ func TestRecipeService_GetAllRecipes_RepositoryError(t *testing.T) {
 	setup := setupRecipeServiceTest()
 	expectedError := errors.New("database error")
 
-	setup.recipeRepo.On("GetAll").Return(nil, expectedError)
+	setup.recipeRepo.On("GetAll", defaultParams).Return(nil, 0, expectedError)
 
-	result, err := setup.service.GetAllRecipes()
+	result, _, err := setup.service.GetAllRecipes(defaultParams)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -132,13 +135,14 @@ func TestRecipeService_GetRecipesByCategory_Success(t *testing.T) {
 	}
 
 	setup.categoryRepo.On("Exists", categoryID).Return(true, nil)
-	setup.recipeRepo.On("GetByCategory", categoryID).Return(expectedRecipes, nil)
+	setup.recipeRepo.On("GetByCategory", categoryID, defaultParams).Return(expectedRecipes, 1, nil)
 
-	result, err := setup.service.GetRecipesByCategory(categoryID)
+	result, meta, err := setup.service.GetRecipesByCategory(categoryID, defaultParams)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
 	assert.Equal(t, categoryID, *result[0].CategoryID)
+	assert.Equal(t, 1, meta.Total)
 	setup.categoryRepo.AssertExpectations(t)
 	setup.recipeRepo.AssertExpectations(t)
 }
@@ -150,7 +154,7 @@ func TestRecipeService_GetRecipesByCategory_InvalidCategory(t *testing.T) {
 		t.Run(fmt.Sprintf("category_%d", id), func(t *testing.T) {
 			setup := setupRecipeServiceTest()
 
-			result, err := setup.service.GetRecipesByCategory(id)
+			result, _, err := setup.service.GetRecipesByCategory(id, defaultParams)
 
 			assert.Error(t, err)
 			assert.Nil(t, result)
@@ -166,7 +170,7 @@ func TestRecipeService_GetRecipesByCategory_CategoryNotFound(t *testing.T) {
 
 	setup.categoryRepo.On("Exists", categoryID).Return(false, nil)
 
-	result, err := setup.service.GetRecipesByCategory(categoryID)
+	result, _, err := setup.service.GetRecipesByCategory(categoryID, defaultParams)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -473,12 +477,13 @@ func TestRecipeService_GetAllRecipesWithIngredients_Success(t *testing.T) {
 		testdata.NewRecipeWithIngredientsBuilder().Build(),
 	}
 
-	setup.recipeRepo.On("GetAllWithIngredients").Return(expectedRecipes, nil)
+	setup.recipeRepo.On("GetAllWithIngredients", defaultParams).Return(expectedRecipes, 1, nil)
 
-	result, err := setup.service.GetAllRecipesWithIngredients()
+	result, meta, err := setup.service.GetAllRecipesWithIngredients(defaultParams)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
+	assert.Equal(t, 1, meta.Total)
 	setup.recipeRepo.AssertExpectations(t)
 }
 
@@ -486,9 +491,9 @@ func TestRecipeService_GetAllRecipesWithIngredients_RepositoryError(t *testing.T
 	setup := setupRecipeServiceTest()
 	expectedError := errors.New("database error")
 
-	setup.recipeRepo.On("GetAllWithIngredients").Return(nil, expectedError)
+	setup.recipeRepo.On("GetAllWithIngredients", defaultParams).Return(nil, 0, expectedError)
 
-	result, err := setup.service.GetAllRecipesWithIngredients()
+	result, _, err := setup.service.GetAllRecipesWithIngredients(defaultParams)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -548,12 +553,13 @@ func TestRecipeService_GetRecipesByCategoryWithIngredients_Success(t *testing.T)
 	}
 
 	setup.categoryRepo.On("Exists", categoryID).Return(true, nil)
-	setup.recipeRepo.On("GetByCategoryWithIngredients", categoryID).Return(expectedRecipes, nil)
+	setup.recipeRepo.On("GetByCategoryWithIngredients", categoryID, defaultParams).Return(expectedRecipes, 1, nil)
 
-	result, err := setup.service.GetRecipesByCategoryWithIngredients(categoryID)
+	result, meta, err := setup.service.GetRecipesByCategoryWithIngredients(categoryID, defaultParams)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
+	assert.Equal(t, 1, meta.Total)
 	setup.categoryRepo.AssertExpectations(t)
 	setup.recipeRepo.AssertExpectations(t)
 }
@@ -561,7 +567,7 @@ func TestRecipeService_GetRecipesByCategoryWithIngredients_Success(t *testing.T)
 func TestRecipeService_GetRecipesByCategoryWithIngredients_InvalidCategory(t *testing.T) {
 	setup := setupRecipeServiceTest()
 
-	result, err := setup.service.GetRecipesByCategoryWithIngredients(0)
+	result, _, err := setup.service.GetRecipesByCategoryWithIngredients(0, defaultParams)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -740,12 +746,13 @@ func TestRecipeService_SearchRecipesByIngredients_Success(t *testing.T) {
 
 	setup.ingredientRepo.On("IngredientExists", 1).Return(true, nil)
 	setup.ingredientRepo.On("IngredientExists", 2).Return(true, nil)
-	setup.recipeRepo.On("SearchRecipesByIngredients", ingredientIDs).Return(expectedRecipes, nil)
+	setup.recipeRepo.On("SearchRecipesByIngredients", ingredientIDs, defaultParams).Return(expectedRecipes, 1, nil)
 
-	result, err := setup.service.SearchRecipesByIngredients(ingredientIDs)
+	result, meta, err := setup.service.SearchRecipesByIngredients(ingredientIDs, defaultParams)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
+	assert.Equal(t, 1, meta.Total)
 	setup.ingredientRepo.AssertExpectations(t)
 	setup.recipeRepo.AssertExpectations(t)
 }
@@ -753,10 +760,11 @@ func TestRecipeService_SearchRecipesByIngredients_Success(t *testing.T) {
 func TestRecipeService_SearchRecipesByIngredients_EmptyInput(t *testing.T) {
 	setup := setupRecipeServiceTest()
 
-	result, err := setup.service.SearchRecipesByIngredients([]int{})
+	result, meta, err := setup.service.SearchRecipesByIngredients([]int{}, defaultParams)
 
 	assert.NoError(t, err)
 	assert.Empty(t, result)
+	assert.Equal(t, 0, meta.Total)
 	setup.ingredientRepo.AssertNotCalled(t, "IngredientExists")
 	setup.recipeRepo.AssertNotCalled(t, "SearchRecipesByIngredients")
 }
@@ -765,7 +773,7 @@ func TestRecipeService_SearchRecipesByIngredients_InvalidIngredientID(t *testing
 	setup := setupRecipeServiceTest()
 	ingredientIDs := []int{0, 1}
 
-	result, err := setup.service.SearchRecipesByIngredients(ingredientIDs)
+	result, _, err := setup.service.SearchRecipesByIngredients(ingredientIDs, defaultParams)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -780,7 +788,7 @@ func TestRecipeService_SearchRecipesByIngredients_IngredientNotFound(t *testing.
 	setup.ingredientRepo.On("IngredientExists", 1).Return(true, nil)
 	setup.ingredientRepo.On("IngredientExists", 999).Return(false, nil)
 
-	result, err := setup.service.SearchRecipesByIngredients(ingredientIDs)
+	result, _, err := setup.service.SearchRecipesByIngredients(ingredientIDs, defaultParams)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -802,13 +810,14 @@ func TestRecipeService_SearchRecipesByIngredientsWithIngredients_Success(t *test
 
 	setup.ingredientRepo.On("IngredientExists", 1).Return(true, nil)
 	setup.ingredientRepo.On("IngredientExists", 2).Return(true, nil)
-	setup.recipeRepo.On("SearchRecipesByIngredientsWithIngredients", ingredientIDs).
-		Return(expectedRecipes, nil)
+	setup.recipeRepo.On("SearchRecipesByIngredientsWithIngredients", ingredientIDs, defaultParams).
+		Return(expectedRecipes, 1, nil)
 
-	result, err := setup.service.SearchRecipesByIngredientsWithIngredients(ingredientIDs)
+	result, meta, err := setup.service.SearchRecipesByIngredientsWithIngredients(ingredientIDs, defaultParams)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
+	assert.Equal(t, 1, meta.Total)
 	setup.ingredientRepo.AssertExpectations(t)
 	setup.recipeRepo.AssertExpectations(t)
 }
@@ -816,10 +825,11 @@ func TestRecipeService_SearchRecipesByIngredientsWithIngredients_Success(t *test
 func TestRecipeService_SearchRecipesByIngredientsWithIngredients_EmptyInput(t *testing.T) {
 	setup := setupRecipeServiceTest()
 
-	result, err := setup.service.SearchRecipesByIngredientsWithIngredients([]int{})
+	result, meta, err := setup.service.SearchRecipesByIngredientsWithIngredients([]int{}, defaultParams)
 
 	assert.NoError(t, err)
 	assert.Empty(t, result)
+	assert.Equal(t, 0, meta.Total)
 	setup.ingredientRepo.AssertNotCalled(t, "IngredientExists")
 	setup.recipeRepo.AssertNotCalled(t, "SearchRecipesByIngredientsWithIngredients")
 }

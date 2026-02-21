@@ -45,7 +45,7 @@ func TestIngredientHandler_GetAllIngredients_Success(t *testing.T) {
 		testdata.NewIngredientBuilder().WithID(2).WithName("Basil").Build(),
 	}
 
-	setup.ingredientService.On("GetAllIngredients").Return(expectedIngredients, nil)
+	setup.ingredientService.On("GetAllIngredients", mock.AnythingOfType("models.PaginationParams")).Return(expectedIngredients, models.PaginationMeta{}, nil)
 
 	req := httptest.NewRequest("GET", "/ingredients", nil)
 	recorder := httptest.NewRecorder()
@@ -55,11 +55,14 @@ func TestIngredientHandler_GetAllIngredients_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, "application/json", recorder.Header().Get("Content-Type"))
 
-	var response []models.Ingredient
+	var response struct {
+		Data       []models.Ingredient   `json:"data"`
+		Pagination models.PaginationMeta `json:"pagination"`
+	}
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 	assert.NoError(t, err)
-	assert.Len(t, response, 2)
-	assert.Equal(t, "Tomato", response[0].Name)
+	assert.Len(t, response.Data, 2)
+	assert.Equal(t, "Tomato", response.Data[0].Name)
 
 	setup.ingredientService.AssertExpectations(t)
 }
@@ -70,7 +73,7 @@ func TestIngredientHandler_GetAllIngredients_WithCategoryFilter(t *testing.T) {
 		testdata.NewIngredientBuilder().WithCategory("Vegetable").Build(),
 	}
 
-	setup.ingredientService.On("GetIngredientsByCategory", "Vegetable").Return(expectedIngredients, nil)
+	setup.ingredientService.On("GetIngredientsByCategory", "Vegetable", mock.AnythingOfType("models.PaginationParams")).Return(expectedIngredients, models.PaginationMeta{}, nil)
 
 	req := httptest.NewRequest("GET", "/ingredients?category=Vegetable", nil)
 	recorder := httptest.NewRecorder()
@@ -79,10 +82,13 @@ func TestIngredientHandler_GetAllIngredients_WithCategoryFilter(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 
-	var response []models.Ingredient
+	var response struct {
+		Data       []models.Ingredient   `json:"data"`
+		Pagination models.PaginationMeta `json:"pagination"`
+	}
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 	assert.NoError(t, err)
-	assert.Len(t, response, 1)
+	assert.Len(t, response.Data, 1)
 
 	setup.ingredientService.AssertExpectations(t)
 }
@@ -93,7 +99,7 @@ func TestIngredientHandler_GetAllIngredients_WithSearchQuery(t *testing.T) {
 		testdata.NewIngredientBuilder().WithName("Cherry Tomato").Build(),
 	}
 
-	setup.ingredientService.On("SearchIngredients", "tomato").Return(expectedIngredients, nil)
+	setup.ingredientService.On("SearchIngredients", "tomato", mock.AnythingOfType("models.PaginationParams")).Return(expectedIngredients, models.PaginationMeta{}, nil)
 
 	req := httptest.NewRequest("GET", "/ingredients?search=tomato", nil)
 	recorder := httptest.NewRecorder()
@@ -102,10 +108,13 @@ func TestIngredientHandler_GetAllIngredients_WithSearchQuery(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 
-	var response []models.Ingredient
+	var response struct {
+		Data       []models.Ingredient   `json:"data"`
+		Pagination models.PaginationMeta `json:"pagination"`
+	}
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 	assert.NoError(t, err)
-	assert.Len(t, response, 1)
+	assert.Len(t, response.Data, 1)
 
 	setup.ingredientService.AssertExpectations(t)
 }
@@ -113,7 +122,7 @@ func TestIngredientHandler_GetAllIngredients_WithSearchQuery(t *testing.T) {
 func TestIngredientHandler_GetAllIngredients_ServiceError(t *testing.T) {
 	setup := setupIngredientHandlerTest()
 
-	setup.ingredientService.On("GetAllIngredients").Return(nil, errors.New("database error"))
+	setup.ingredientService.On("GetAllIngredients", mock.AnythingOfType("models.PaginationParams")).Return(nil, models.PaginationMeta{}, errors.New("database error"))
 
 	req := httptest.NewRequest("GET", "/ingredients", nil)
 	recorder := httptest.NewRecorder()
@@ -446,7 +455,7 @@ func TestIngredientHandler_GetRecipesUsingIngredient_Success(t *testing.T) {
 		testdata.NewRecipeBuilder().WithID(1).WithName("Tomato Sauce").Build(),
 	}
 
-	setup.ingredientService.On("GetRecipesUsingIngredient", 1).Return(expectedRecipes, nil)
+	setup.ingredientService.On("GetRecipesUsingIngredient", 1, mock.AnythingOfType("models.PaginationParams")).Return(expectedRecipes, models.PaginationMeta{}, nil)
 
 	req := httptest.NewRequest("GET", "/ingredients/1/recipes", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
@@ -456,11 +465,14 @@ func TestIngredientHandler_GetRecipesUsingIngredient_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 
-	var response []models.Recipe
+	var response struct {
+		Data       []models.Recipe       `json:"data"`
+		Pagination models.PaginationMeta `json:"pagination"`
+	}
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 	assert.NoError(t, err)
-	assert.Len(t, response, 1)
-	assert.Equal(t, "Tomato Sauce", response[0].Name)
+	assert.Len(t, response.Data, 1)
+	assert.Equal(t, "Tomato Sauce", response.Data[0].Name)
 
 	setup.ingredientService.AssertExpectations(t)
 }

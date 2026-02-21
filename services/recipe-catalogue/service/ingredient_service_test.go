@@ -45,13 +45,14 @@ func TestIngredientService_GetAllIngredients_Success(t *testing.T) {
 		testdata.NewIngredientBuilder().WithID(2).WithName("Basil").Build(),
 	}
 
-	setup.ingredientRepo.On("GetAllIngredients").Return(expectedIngredients, nil)
+	setup.ingredientRepo.On("GetAllIngredients", defaultParams).Return(expectedIngredients, 2, nil)
 
-	result, err := setup.service.GetAllIngredients()
+	result, meta, err := setup.service.GetAllIngredients(defaultParams)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 2)
 	assert.Equal(t, "Tomato", result[0].Name)
+	assert.Equal(t, 2, meta.Total)
 	setup.ingredientRepo.AssertExpectations(t)
 }
 
@@ -59,9 +60,9 @@ func TestIngredientService_GetAllIngredients_RepositoryError(t *testing.T) {
 	setup := setupIngredientServiceTest()
 	expectedError := errors.New("database error")
 
-	setup.ingredientRepo.On("GetAllIngredients").Return(nil, expectedError)
+	setup.ingredientRepo.On("GetAllIngredients", defaultParams).Return(nil, 0, expectedError)
 
-	result, err := setup.service.GetAllIngredients()
+	result, _, err := setup.service.GetAllIngredients(defaultParams)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -128,13 +129,14 @@ func TestIngredientService_GetIngredientsByCategory_Success(t *testing.T) {
 		testdata.NewIngredientBuilder().WithCategory(category).Build(),
 	}
 
-	setup.ingredientRepo.On("GetIngredientsByCategory", category).Return(expectedIngredients, nil)
+	setup.ingredientRepo.On("GetIngredientsByCategory", category, defaultParams).Return(expectedIngredients, 1, nil)
 
-	result, err := setup.service.GetIngredientsByCategory(category)
+	result, meta, err := setup.service.GetIngredientsByCategory(category, defaultParams)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
 	assert.Equal(t, category, *result[0].Category)
+	assert.Equal(t, 1, meta.Total)
 	setup.ingredientRepo.AssertExpectations(t)
 }
 
@@ -144,9 +146,9 @@ func TestIngredientService_GetIngredientsByCategory_EmptyCategory(t *testing.T) 
 		testdata.NewIngredientBuilder().Build(),
 	}
 
-	setup.ingredientRepo.On("GetAllIngredients").Return(expectedIngredients, nil)
+	setup.ingredientRepo.On("GetAllIngredients", defaultParams).Return(expectedIngredients, 1, nil)
 
-	result, err := setup.service.GetIngredientsByCategory("")
+	result, _, err := setup.service.GetIngredientsByCategory("", defaultParams)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
@@ -159,9 +161,9 @@ func TestIngredientService_GetIngredientsByCategory_WhitespaceCategory(t *testin
 		testdata.NewIngredientBuilder().Build(),
 	}
 
-	setup.ingredientRepo.On("GetAllIngredients").Return(expectedIngredients, nil)
+	setup.ingredientRepo.On("GetAllIngredients", defaultParams).Return(expectedIngredients, 1, nil)
 
-	result, err := setup.service.GetIngredientsByCategory("   ")
+	result, _, err := setup.service.GetIngredientsByCategory("   ", defaultParams)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
@@ -179,12 +181,13 @@ func TestIngredientService_SearchIngredients_Success(t *testing.T) {
 		testdata.NewIngredientBuilder().WithName("Cherry Tomato").Build(),
 	}
 
-	setup.ingredientRepo.On("SearchIngredients", query).Return(expectedIngredients, nil)
+	setup.ingredientRepo.On("SearchIngredients", query, defaultParams).Return(expectedIngredients, 1, nil)
 
-	result, err := setup.service.SearchIngredients(query)
+	result, meta, err := setup.service.SearchIngredients(query, defaultParams)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
+	assert.Equal(t, 1, meta.Total)
 	setup.ingredientRepo.AssertExpectations(t)
 }
 
@@ -194,9 +197,9 @@ func TestIngredientService_SearchIngredients_EmptyQuery(t *testing.T) {
 		testdata.NewIngredientBuilder().Build(),
 	}
 
-	setup.ingredientRepo.On("GetAllIngredients").Return(expectedIngredients, nil)
+	setup.ingredientRepo.On("GetAllIngredients", defaultParams).Return(expectedIngredients, 1, nil)
 
-	result, err := setup.service.SearchIngredients("")
+	result, _, err := setup.service.SearchIngredients("", defaultParams)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
@@ -374,9 +377,10 @@ func TestIngredientService_DeleteIngredient_Success(t *testing.T) {
 	setup := setupIngredientServiceTest()
 	ingredientID := 1
 	existingIngredient := testdata.NewIngredientBuilder().WithID(ingredientID).BuildPtr()
+	checkParams := models.PaginationParams{Page: 1, PerPage: 1}
 
 	setup.ingredientRepo.On("GetIngredientByID", ingredientID).Return(existingIngredient, nil)
-	setup.ingredientRepo.On("GetRecipesUsingIngredient", ingredientID).Return([]models.Recipe{}, nil)
+	setup.ingredientRepo.On("GetRecipesUsingIngredient", ingredientID, checkParams).Return([]models.Recipe{}, 0, nil)
 	setup.ingredientRepo.On("DeleteIngredient", ingredientID).Return(nil)
 
 	err := setup.service.DeleteIngredient(ingredientID)
@@ -418,12 +422,10 @@ func TestIngredientService_DeleteIngredient_UsedInRecipes(t *testing.T) {
 	setup := setupIngredientServiceTest()
 	ingredientID := 1
 	existingIngredient := testdata.NewIngredientBuilder().WithID(ingredientID).BuildPtr()
-	recipesUsingIngredient := []models.Recipe{
-		testdata.NewRecipeBuilder().WithID(1).Build(),
-	}
+	checkParams := models.PaginationParams{Page: 1, PerPage: 1}
 
 	setup.ingredientRepo.On("GetIngredientByID", ingredientID).Return(existingIngredient, nil)
-	setup.ingredientRepo.On("GetRecipesUsingIngredient", ingredientID).Return(recipesUsingIngredient, nil)
+	setup.ingredientRepo.On("GetRecipesUsingIngredient", ingredientID, checkParams).Return(nil, 1, nil)
 
 	err := setup.service.DeleteIngredient(ingredientID)
 
@@ -746,19 +748,20 @@ func TestIngredientService_GetRecipesUsingIngredient_Success(t *testing.T) {
 	}
 
 	setup.ingredientRepo.On("GetIngredientByID", ingredientID).Return(existingIngredient, nil)
-	setup.ingredientRepo.On("GetRecipesUsingIngredient", ingredientID).Return(expectedRecipes, nil)
+	setup.ingredientRepo.On("GetRecipesUsingIngredient", ingredientID, defaultParams).Return(expectedRecipes, 1, nil)
 
-	result, err := setup.service.GetRecipesUsingIngredient(ingredientID)
+	result, meta, err := setup.service.GetRecipesUsingIngredient(ingredientID, defaultParams)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
+	assert.Equal(t, 1, meta.Total)
 	setup.ingredientRepo.AssertExpectations(t)
 }
 
 func TestIngredientService_GetRecipesUsingIngredient_InvalidID(t *testing.T) {
 	setup := setupIngredientServiceTest()
 
-	result, err := setup.service.GetRecipesUsingIngredient(0)
+	result, _, err := setup.service.GetRecipesUsingIngredient(0, defaultParams)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -772,7 +775,7 @@ func TestIngredientService_GetRecipesUsingIngredient_IngredientNotFound(t *testi
 
 	setup.ingredientRepo.On("GetIngredientByID", ingredientID).Return(nil, sql.ErrNoRows)
 
-	result, err := setup.service.GetRecipesUsingIngredient(ingredientID)
+	result, _, err := setup.service.GetRecipesUsingIngredient(ingredientID, defaultParams)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)

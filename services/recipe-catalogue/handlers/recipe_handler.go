@@ -23,25 +23,26 @@ func NewRecipeHandler(recipeService service.RecipeService) *RecipeHandler {
 }
 
 func (h *RecipeHandler) GetAllRecipes(w http.ResponseWriter, r *http.Request) {
+	params := models.ParsePaginationParams(r)
 	includeIngredients := r.URL.Query().Get("include_ingredients") == "true"
 
 	if includeIngredients {
-		recipes, err := h.recipeService.GetAllRecipesWithIngredients()
+		recipes, meta, err := h.recipeService.GetAllRecipesWithIngredients(params)
 		if err != nil {
 			models.WriteErrorResponse(w, "Failed to fetch recipes with ingredients", http.StatusInternalServerError)
 			return
 		}
-		models.WriteSuccessResponse(w, recipes, http.StatusOK)
+		models.WritePaginatedResponse(w, recipes, meta, http.StatusOK)
 		return
 	}
 
-	recipes, err := h.recipeService.GetAllRecipes()
+	recipes, meta, err := h.recipeService.GetAllRecipes(params)
 	if err != nil {
 		models.WriteErrorResponse(w, "Failed to fetch recipes", http.StatusInternalServerError)
 		return
 	}
 
-	models.WriteSuccessResponse(w, recipes, http.StatusOK)
+	models.WritePaginatedResponse(w, recipes, meta, http.StatusOK)
 }
 
 func (h *RecipeHandler) GetRecipeByID(w http.ResponseWriter, r *http.Request) {
@@ -101,10 +102,11 @@ func (h *RecipeHandler) GetRecipesByCategory(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	params := models.ParsePaginationParams(r)
 	includeIngredients := r.URL.Query().Get("include_ingredients") == "true"
 
 	if includeIngredients {
-		recipes, err := h.recipeService.GetRecipesByCategoryWithIngredients(categoryID)
+		recipes, meta, err := h.recipeService.GetRecipesByCategoryWithIngredients(categoryID, params)
 		if err != nil {
 			switch err {
 			case domain.ErrCategoryNotFound:
@@ -116,11 +118,11 @@ func (h *RecipeHandler) GetRecipesByCategory(w http.ResponseWriter, r *http.Requ
 			}
 			return
 		}
-		models.WriteSuccessResponse(w, recipes, http.StatusOK)
+		models.WritePaginatedResponse(w, recipes, meta, http.StatusOK)
 		return
 	}
 
-	recipes, err := h.recipeService.GetRecipesByCategory(categoryID)
+	recipes, meta, err := h.recipeService.GetRecipesByCategory(categoryID, params)
 	if err != nil {
 		switch err {
 		case domain.ErrCategoryNotFound:
@@ -133,7 +135,7 @@ func (h *RecipeHandler) GetRecipesByCategory(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	models.WriteSuccessResponse(w, recipes, http.StatusOK)
+	models.WritePaginatedResponse(w, recipes, meta, http.StatusOK)
 }
 
 func (h *RecipeHandler) CreateRecipe(w http.ResponseWriter, r *http.Request) {
@@ -259,26 +261,28 @@ func (h *RecipeHandler) SearchRecipesByIngredients(w http.ResponseWriter, r *htt
 		return
 	}
 
+	params := models.ParsePaginationParams(r)
+
 	// Check if client wants recipes with ingredients included
 	includeIngredients := r.URL.Query().Get("include_ingredients") == "true"
 
 	if includeIngredients {
-		recipes, err := h.recipeService.SearchRecipesByIngredientsWithIngredients(ingredientIDs)
+		recipes, meta, err := h.recipeService.SearchRecipesByIngredientsWithIngredients(ingredientIDs, params)
 		if err != nil {
 			models.WriteErrorResponse(w, "Failed to search recipes with ingredients", http.StatusInternalServerError)
 			return
 		}
-		models.WriteSuccessResponse(w, recipes, http.StatusOK)
+		models.WritePaginatedResponse(w, recipes, meta, http.StatusOK)
 		return
 	}
 
-	recipes, err := h.recipeService.SearchRecipesByIngredients(ingredientIDs)
+	recipes, meta, err := h.recipeService.SearchRecipesByIngredients(ingredientIDs, params)
 	if err != nil {
 		models.WriteErrorResponse(w, "Failed to search recipes", http.StatusInternalServerError)
 		return
 	}
 
-	models.WriteSuccessResponse(w, recipes, http.StatusOK)
+	models.WritePaginatedResponse(w, recipes, meta, http.StatusOK)
 }
 
 func (h *RecipeHandler) parseIngredientIDs(ingredientIDsParam string) ([]int, error) {
@@ -304,4 +308,3 @@ func (h *RecipeHandler) parseIngredientIDs(ingredientIDsParam string) ([]int, er
 
 	return ingredientIDs, nil
 }
-

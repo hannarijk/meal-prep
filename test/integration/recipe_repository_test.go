@@ -105,7 +105,8 @@ func (suite *RecipeRepositoryIntegrationSuite) TestGetAll_EmptyDatabase() {
 	suite.testDB.CleanupTestData(suite.T())
 	suite.seedTestData() // Only categories and ingredients
 
-	recipes, err := suite.recipeRepo.GetAll()
+	params := models.PaginationParams{Page: 1, PerPage: 100}
+	recipes, _, err := suite.recipeRepo.GetAll(params)
 
 	assert.NoError(suite.T(), err)
 	assert.Empty(suite.T(), recipes)
@@ -129,7 +130,8 @@ func (suite *RecipeRepositoryIntegrationSuite) TestGetAll_WithRecipes() {
 	_, err = suite.recipeRepo.Create(1, recipe2)
 	require.NoError(suite.T(), err)
 
-	recipes, err := suite.recipeRepo.GetAll()
+	params := models.PaginationParams{Page: 1, PerPage: 100}
+	recipes, _, err := suite.recipeRepo.GetAll(params)
 
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), recipes, 2)
@@ -314,7 +316,8 @@ func (suite *RecipeRepositoryIntegrationSuite) TestGetByCategory_WithRecipes() {
 	suite.recipeRepo.Create(1, healthyRecipe2)
 
 	// Get recipes by category
-	healthyRecipes, err := suite.recipeRepo.GetByCategory(suite.healthyCategoryID)
+	params := models.PaginationParams{Page: 1, PerPage: 100}
+	healthyRecipes, _, err := suite.recipeRepo.GetByCategory(suite.healthyCategoryID, params)
 
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), healthyRecipes, 2)
@@ -328,14 +331,16 @@ func (suite *RecipeRepositoryIntegrationSuite) TestGetByCategory_WithRecipes() {
 }
 
 func (suite *RecipeRepositoryIntegrationSuite) TestGetByCategory_EmptyCategory() {
-	recipes, err := suite.recipeRepo.GetByCategory(suite.italianCategoryID)
+	params := models.PaginationParams{Page: 1, PerPage: 100}
+	recipes, _, err := suite.recipeRepo.GetByCategory(suite.italianCategoryID, params)
 
 	assert.NoError(suite.T(), err)
 	assert.Empty(suite.T(), recipes)
 }
 
 func (suite *RecipeRepositoryIntegrationSuite) TestGetByCategory_NonExistentCategory() {
-	recipes, err := suite.recipeRepo.GetByCategory(99999)
+	params := models.PaginationParams{Page: 1, PerPage: 100}
+	recipes, _, err := suite.recipeRepo.GetByCategory(99999, params)
 
 	assert.NoError(suite.T(), err)
 	assert.Empty(suite.T(), recipes)
@@ -466,7 +471,8 @@ func (suite *RecipeRepositoryIntegrationSuite) TestGetAllWithIngredients_Multipl
 	}
 	suite.recipeRepo.CreateWithIngredients(1, recipe2)
 
-	results, err := suite.recipeRepo.GetAllWithIngredients()
+	params := models.PaginationParams{Page: 1, PerPage: 100}
+	results, _, err := suite.recipeRepo.GetAllWithIngredients(params)
 
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), results, 2)
@@ -551,7 +557,8 @@ func (suite *RecipeRepositoryIntegrationSuite) TestGetByCategoryWithIngredients_
 	suite.recipeRepo.CreateWithIngredients(1, recipe3)
 
 	// Get Italian recipes with ingredients
-	results, err := suite.recipeRepo.GetByCategoryWithIngredients(suite.italianCategoryID)
+	params := models.PaginationParams{Page: 1, PerPage: 100}
+	results, _, err := suite.recipeRepo.GetByCategoryWithIngredients(suite.italianCategoryID, params)
 
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), results, 2)
@@ -602,7 +609,8 @@ func (suite *RecipeRepositoryIntegrationSuite) TestSearchRecipesByIngredients_Ma
 	suite.recipeRepo.CreateWithIngredients(1, tomatoSalad)
 
 	// Search for recipes containing tomato
-	recipes, err := suite.recipeRepo.SearchRecipesByIngredients([]int{suite.tomatoIngredientID})
+	params := models.PaginationParams{Page: 1, PerPage: 100}
+	recipes, _, err := suite.recipeRepo.SearchRecipesByIngredients([]int{suite.tomatoIngredientID}, params)
 
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), recipes, 2) // Tomato Pasta and Tomato Salad
@@ -612,7 +620,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestSearchRecipesByIngredients_Ma
 	assert.Contains(suite.T(), recipeNames, "Tomato Salad")
 
 	// Search for recipes containing both tomato and pasta
-	recipes, err = suite.recipeRepo.SearchRecipesByIngredients([]int{suite.tomatoIngredientID, suite.pastaIngredientID})
+	recipes, _, err = suite.recipeRepo.SearchRecipesByIngredients([]int{suite.tomatoIngredientID, suite.pastaIngredientID}, params)
 
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), recipes, 3) // Recipes include at least one of the ingredients
@@ -635,7 +643,8 @@ func (suite *RecipeRepositoryIntegrationSuite) TestSearchRecipesByIngredients_No
 	suite.recipeRepo.CreateWithIngredients(1, recipe)
 
 	// Search for recipes with tomato
-	recipes, err := suite.recipeRepo.SearchRecipesByIngredients([]int{suite.tomatoIngredientID})
+	params := models.PaginationParams{Page: 1, PerPage: 100}
+	recipes, _, err := suite.recipeRepo.SearchRecipesByIngredients([]int{suite.tomatoIngredientID}, params)
 
 	assert.NoError(suite.T(), err)
 	assert.Empty(suite.T(), recipes)
@@ -655,7 +664,8 @@ func (suite *RecipeRepositoryIntegrationSuite) TestSearchRecipesByIngredientsWit
 	suite.recipeRepo.CreateWithIngredients(1, recipe)
 
 	// Search with complete ingredient data
-	results, err := suite.recipeRepo.SearchRecipesByIngredientsWithIngredients([]int{suite.tomatoIngredientID})
+	params := models.PaginationParams{Page: 1, PerPage: 100}
+	results, _, err := suite.recipeRepo.SearchRecipesByIngredientsWithIngredients([]int{suite.tomatoIngredientID}, params)
 
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), results, 1)
@@ -694,7 +704,8 @@ func (suite *RecipeRepositoryIntegrationSuite) TestTransactionRollback_CreateWit
 	assert.Nil(suite.T(), result)
 
 	// Verify no partial data was created (transaction was rolled back)
-	recipes, _ := suite.recipeRepo.GetAll()
+	params := models.PaginationParams{Page: 1, PerPage: 100}
+	recipes, _, _ := suite.recipeRepo.GetAll(params)
 	for _, recipe := range recipes {
 		assert.NotEqual(suite.T(), "Failed Recipe", recipe.Name)
 	}
@@ -729,7 +740,8 @@ func (suite *RecipeRepositoryIntegrationSuite) TestConcurrentAccess_MultipleCrea
 	<-done
 
 	// Verify both recipes were created
-	recipes, err := suite.recipeRepo.GetAll()
+	params := models.PaginationParams{Page: 1, PerPage: 100}
+	recipes, _, err := suite.recipeRepo.GetAll(params)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), recipes, 2)
 }

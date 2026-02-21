@@ -9,22 +9,22 @@ import (
 )
 
 type RecipeRepository interface {
-	GetAll() ([]models.Recipe, error)
+	GetAll(params models.PaginationParams) ([]models.Recipe, int, error)
 	GetByID(id int) (*models.Recipe, error)
-	GetByCategory(categoryID int) ([]models.Recipe, error)
+	GetByCategory(categoryID int, params models.PaginationParams) ([]models.Recipe, int, error)
 	GetOwnerID(id int) (int, error)
 	Create(userID int, req models.CreateRecipeRequest) (*models.Recipe, error)
 	Update(id int, req models.UpdateRecipeRequest) (*models.Recipe, error)
 	Delete(id int) error
 
-	GetAllWithIngredients() ([]models.RecipeWithIngredients, error)
+	GetAllWithIngredients(params models.PaginationParams) ([]models.RecipeWithIngredients, int, error)
 	GetByIDWithIngredients(id int) (*models.RecipeWithIngredients, error)
-	GetByCategoryWithIngredients(categoryID int) ([]models.RecipeWithIngredients, error)
+	GetByCategoryWithIngredients(categoryID int, params models.PaginationParams) ([]models.RecipeWithIngredients, int, error)
 	CreateWithIngredients(userID int, req models.CreateRecipeWithIngredientsRequest) (*models.RecipeWithIngredients, error)
 	UpdateWithIngredients(id int, req models.UpdateRecipeWithIngredientsRequest) (*models.RecipeWithIngredients, error)
 
-	SearchRecipesByIngredients(ingredientIDs []int) ([]models.Recipe, error)
-	SearchRecipesByIngredientsWithIngredients(ingredientIDs []int) ([]models.RecipeWithIngredients, error)
+	SearchRecipesByIngredients(ingredientIDs []int, params models.PaginationParams) ([]models.Recipe, int, error)
+	SearchRecipesByIngredientsWithIngredients(ingredientIDs []int, params models.PaginationParams) ([]models.RecipeWithIngredients, int, error)
 }
 
 type recipeRepository struct {
@@ -39,17 +39,24 @@ func NewRecipeRepository(db *database.DB) RecipeRepository {
 	}
 }
 
-func (r *recipeRepository) GetAll() ([]models.Recipe, error) {
+func (r *recipeRepository) GetAll(params models.PaginationParams) ([]models.Recipe, int, error) {
+	var total int
+	err := r.db.QueryRow(`SELECT COUNT(*) FROM recipe_catalogue.recipes`).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	query := `
 		SELECT d.id, d.user_id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 		       c.id, c.name, c.description
 		FROM recipe_catalogue.recipes d
 		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
-		ORDER BY d.name`
+		ORDER BY d.name
+		LIMIT $1 OFFSET $2`
 
-	rows, err := r.db.Query(query)
+	rows, err := r.db.Query(query, params.PerPage, params.Offset())
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -57,12 +64,12 @@ func (r *recipeRepository) GetAll() ([]models.Recipe, error) {
 	for rows.Next() {
 		recipe, err := r.scanRecipeWithCategory(rows)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		recipes = append(recipes, *recipe)
 	}
 
-	return recipes, nil
+	return recipes, total, nil
 }
 
 func (r *recipeRepository) GetByID(id int) (*models.Recipe, error) {
@@ -76,18 +83,27 @@ func (r *recipeRepository) GetByID(id int) (*models.Recipe, error) {
 	return r.scanRecipeWithCategory(r.db.QueryRow(query, id))
 }
 
-func (r *recipeRepository) GetByCategory(categoryID int) ([]models.Recipe, error) {
+func (r *recipeRepository) GetByCategory(categoryID int, params models.PaginationParams) ([]models.Recipe, int, error) {
+	var total int
+	err := r.db.QueryRow(
+		`SELECT COUNT(*) FROM recipe_catalogue.recipes WHERE category_id = $1`, categoryID,
+	).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	query := `
 		SELECT d.id, d.user_id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 		       c.id, c.name, c.description
 		FROM recipe_catalogue.recipes d
 		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
 		WHERE d.category_id = $1
-		ORDER BY d.name`
+		ORDER BY d.name
+		LIMIT $2 OFFSET $3`
 
-	rows, err := r.db.Query(query, categoryID)
+	rows, err := r.db.Query(query, categoryID, params.PerPage, params.Offset())
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -95,12 +111,12 @@ func (r *recipeRepository) GetByCategory(categoryID int) ([]models.Recipe, error
 	for rows.Next() {
 		recipe, err := r.scanRecipeWithCategory(rows)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		recipes = append(recipes, *recipe)
 	}
 
-	return recipes, nil
+	return recipes, total, nil
 }
 
 // GetOwnerID returns the user_id of the recipe owner, or sql.ErrNoRows if not found.
@@ -169,13 +185,18 @@ func (r *recipeRepository) Delete(id int) error {
 	return nil
 }
 
-func (r *recipeRepository) GetAllWithIngredients() ([]models.RecipeWithIngredients, error) {
-	recipes, err := r.GetAll()
+func (r *recipeRepository) GetAllWithIngredients(params models.PaginationParams) ([]models.RecipeWithIngredients, int, error) {
+	recipes, total, err := r.GetAll(params)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return r.attachIngredientsToRecipes(recipes)
+	result, err := r.attachIngredientsToRecipes(recipes)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return result, total, nil
 }
 
 func (r *recipeRepository) GetByIDWithIngredients(id int) (*models.RecipeWithIngredients, error) {
@@ -195,13 +216,18 @@ func (r *recipeRepository) GetByIDWithIngredients(id int) (*models.RecipeWithIng
 	}, nil
 }
 
-func (r *recipeRepository) GetByCategoryWithIngredients(categoryID int) ([]models.RecipeWithIngredients, error) {
-	recipes, err := r.GetByCategory(categoryID)
+func (r *recipeRepository) GetByCategoryWithIngredients(categoryID int, params models.PaginationParams) ([]models.RecipeWithIngredients, int, error) {
+	recipes, total, err := r.GetByCategory(categoryID, params)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return r.attachIngredientsToRecipes(recipes)
+	result, err := r.attachIngredientsToRecipes(recipes)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return result, total, nil
 }
 
 func (r *recipeRepository) CreateWithIngredients(userID int, req models.CreateRecipeWithIngredientsRequest) (*models.RecipeWithIngredients, error) {
@@ -315,9 +341,20 @@ func (r *recipeRepository) UpdateWithIngredients(id int, req models.UpdateRecipe
 	return fullRecipe, nil
 }
 
-func (r *recipeRepository) SearchRecipesByIngredients(ingredientIDs []int) ([]models.Recipe, error) {
+func (r *recipeRepository) SearchRecipesByIngredients(ingredientIDs []int, params models.PaginationParams) ([]models.Recipe, int, error) {
 	if len(ingredientIDs) == 0 {
-		return []models.Recipe{}, nil
+		return []models.Recipe{}, 0, nil
+	}
+
+	var total int
+	err := r.db.QueryRow(`
+		SELECT COUNT(DISTINCT r.id)
+		FROM recipe_catalogue.recipes r
+		JOIN recipe_catalogue.recipe_ingredients ri ON r.id = ri.recipe_id
+		WHERE ri.ingredient_id = ANY($1)`, pq.Array(ingredientIDs),
+	).Scan(&total)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	query := `
@@ -327,11 +364,12 @@ func (r *recipeRepository) SearchRecipesByIngredients(ingredientIDs []int) ([]mo
         LEFT JOIN recipe_catalogue.categories c ON r.category_id = c.id
         JOIN recipe_catalogue.recipe_ingredients ri ON r.id = ri.recipe_id
         WHERE ri.ingredient_id = ANY($1)
-        ORDER BY r.name`
+        ORDER BY r.name
+        LIMIT $2 OFFSET $3`
 
-	rows, err := r.db.Query(query, pq.Array(ingredientIDs))
+	rows, err := r.db.Query(query, pq.Array(ingredientIDs), params.PerPage, params.Offset())
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -339,21 +377,26 @@ func (r *recipeRepository) SearchRecipesByIngredients(ingredientIDs []int) ([]mo
 	for rows.Next() {
 		recipe, err := r.scanRecipeWithCategory(rows)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		recipes = append(recipes, *recipe)
 	}
 
-	return recipes, nil
+	return recipes, total, nil
 }
 
-func (r *recipeRepository) SearchRecipesByIngredientsWithIngredients(ingredientIDs []int) ([]models.RecipeWithIngredients, error) {
-	recipes, err := r.SearchRecipesByIngredients(ingredientIDs)
+func (r *recipeRepository) SearchRecipesByIngredientsWithIngredients(ingredientIDs []int, params models.PaginationParams) ([]models.RecipeWithIngredients, int, error) {
+	recipes, total, err := r.SearchRecipesByIngredients(ingredientIDs, params)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return r.attachIngredientsToRecipes(recipes)
+	result, err := r.attachIngredientsToRecipes(recipes)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return result, total, nil
 }
 
 // scanRecipeWithCategory reads a recipe + its left-joined category from any scanner

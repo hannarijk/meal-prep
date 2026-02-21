@@ -14,12 +14,12 @@ type MockIngredientRepository struct {
 // BASIC INGREDIENT OPERATIONS
 // =============================================================================
 
-func (m *MockIngredientRepository) GetAllIngredients() ([]models.Ingredient, error) {
-	args := m.Called()
+func (m *MockIngredientRepository) GetAllIngredients(params models.PaginationParams) ([]models.Ingredient, int, error) {
+	args := m.Called(params)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.Int(1), args.Error(2)
 	}
-	return args.Get(0).([]models.Ingredient), args.Error(1)
+	return args.Get(0).([]models.Ingredient), args.Int(1), args.Error(2)
 }
 
 func (m *MockIngredientRepository) GetIngredientByID(id int) (*models.Ingredient, error) {
@@ -30,20 +30,20 @@ func (m *MockIngredientRepository) GetIngredientByID(id int) (*models.Ingredient
 	return args.Get(0).(*models.Ingredient), args.Error(1)
 }
 
-func (m *MockIngredientRepository) GetIngredientsByCategory(category string) ([]models.Ingredient, error) {
-	args := m.Called(category)
+func (m *MockIngredientRepository) GetIngredientsByCategory(category string, params models.PaginationParams) ([]models.Ingredient, int, error) {
+	args := m.Called(category, params)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.Int(1), args.Error(2)
 	}
-	return args.Get(0).([]models.Ingredient), args.Error(1)
+	return args.Get(0).([]models.Ingredient), args.Int(1), args.Error(2)
 }
 
-func (m *MockIngredientRepository) SearchIngredients(query string) ([]models.Ingredient, error) {
-	args := m.Called(query)
+func (m *MockIngredientRepository) SearchIngredients(query string, params models.PaginationParams) ([]models.Ingredient, int, error) {
+	args := m.Called(query, params)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.Int(1), args.Error(2)
 	}
-	return args.Get(0).([]models.Ingredient), args.Error(1)
+	return args.Get(0).([]models.Ingredient), args.Int(1), args.Error(2)
 }
 
 func (m *MockIngredientRepository) CreateIngredient(req models.CreateIngredientRequest) (*models.Ingredient, error) {
@@ -122,10 +122,10 @@ func (m *MockIngredientRepository) GetIngredientsForRecipes(recipeIDs []int) (ma
 	return args.Get(0).(map[int][]models.RecipeIngredient), args.Error(1)
 }
 
-func (m *MockIngredientRepository) GetRecipesUsingIngredient(ingredientID int) ([]models.Recipe, error) {
-	args := m.Called(ingredientID)
+func (m *MockIngredientRepository) GetRecipesUsingIngredient(ingredientID int, params models.PaginationParams) ([]models.Recipe, int, error) {
+	args := m.Called(ingredientID, params)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.Int(1), args.Error(2)
 	}
-	return args.Get(0).([]models.Recipe), args.Error(1)
+	return args.Get(0).([]models.Recipe), args.Int(1), args.Error(2)
 }

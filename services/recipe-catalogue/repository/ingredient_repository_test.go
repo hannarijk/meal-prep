@@ -45,20 +45,28 @@ func (suite *IngredientRepositoryTestSuite) TearDownTest() {
 func (suite *IngredientRepositoryTestSuite) TestGetAllIngredients_ReturnsAllIngredients() {
 	// Arrange
 	now := time.Now()
+	params := models.PaginationParams{Page: 1, PerPage: 20}
+
+	suite.mock.ExpectQuery(regexp.QuoteMeta(`SELECT COUNT(*) FROM recipe_catalogue.ingredients`)).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(3))
+
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT id, name, description, category, created_at 
-		FROM recipe_catalogue.ingredients 
-		ORDER BY category, name`)).
+		SELECT id, name, description, category, created_at
+		FROM recipe_catalogue.ingredients
+		ORDER BY category, name
+		LIMIT $1 OFFSET $2`)).
+		WithArgs(20, 0).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "category", "created_at"}).
 			AddRow(1, "Tomato", "Fresh tomato", "Vegetable", now).
 			AddRow(2, "Chicken", "Free range chicken", "Protein", now).
 			AddRow(3, "Rice", nil, nil, now))
 
 	// Act
-	ingredients, err := suite.repo.GetAllIngredients()
+	ingredients, total, err := suite.repo.GetAllIngredients(params)
 
 	// Assert
 	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), 3, total)
 	assert.Len(suite.T(), ingredients, 3)
 
 	assert.Equal(suite.T(), "Tomato", ingredients[0].Name)
@@ -72,18 +80,18 @@ func (suite *IngredientRepositoryTestSuite) TestGetAllIngredients_ReturnsAllIngr
 
 func (suite *IngredientRepositoryTestSuite) TestGetAllIngredients_DatabaseError() {
 	// Arrange
-	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT id, name, description, category, created_at 
-		FROM recipe_catalogue.ingredients 
-		ORDER BY category, name`)).
+	params := models.PaginationParams{Page: 1, PerPage: 20}
+
+	suite.mock.ExpectQuery(regexp.QuoteMeta(`SELECT COUNT(*) FROM recipe_catalogue.ingredients`)).
 		WillReturnError(errors.New("database connection lost"))
 
 	// Act
-	ingredients, err := suite.repo.GetAllIngredients()
+	ingredients, total, err := suite.repo.GetAllIngredients(params)
 
 	// Assert
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), ingredients)
+	assert.Equal(suite.T(), 0, total)
 	assert.Contains(suite.T(), err.Error(), "database connection lost")
 }
 
@@ -131,21 +139,29 @@ func (suite *IngredientRepositoryTestSuite) TestGetIngredientByID_NotFound() {
 func (suite *IngredientRepositoryTestSuite) TestGetIngredientsByCategory_ReturnsFilteredIngredients() {
 	// Arrange
 	now := time.Now()
-	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT id, name, description, category, created_at 
-		FROM recipe_catalogue.ingredients 
-		WHERE category = $1 
-		ORDER BY name`)).
+	params := models.PaginationParams{Page: 1, PerPage: 20}
+
+	suite.mock.ExpectQuery(regexp.QuoteMeta(`SELECT COUNT(*) FROM recipe_catalogue.ingredients WHERE category = $1`)).
 		WithArgs("Vegetable").
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(2))
+
+	suite.mock.ExpectQuery(regexp.QuoteMeta(`
+		SELECT id, name, description, category, created_at
+		FROM recipe_catalogue.ingredients
+		WHERE category = $1
+		ORDER BY name
+		LIMIT $2 OFFSET $3`)).
+		WithArgs("Vegetable", 20, 0).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "category", "created_at"}).
 			AddRow(1, "Carrot", "Orange carrot", "Vegetable", now).
 			AddRow(2, "Tomato", "Red tomato", "Vegetable", now))
 
 	// Act
-	ingredients, err := suite.repo.GetIngredientsByCategory("Vegetable")
+	ingredients, total, err := suite.repo.GetIngredientsByCategory("Vegetable", params)
 
 	// Assert
 	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), 2, total)
 	assert.Len(suite.T(), ingredients, 2)
 	assert.Equal(suite.T(), "Carrot", ingredients[0].Name)
 	assert.Equal(suite.T(), "Tomato", ingredients[1].Name)
@@ -154,21 +170,29 @@ func (suite *IngredientRepositoryTestSuite) TestGetIngredientsByCategory_Returns
 func (suite *IngredientRepositoryTestSuite) TestSearchIngredients_ReturnsMatchingIngredients() {
 	// Arrange
 	now := time.Now()
-	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT id, name, description, category, created_at 
-		FROM recipe_catalogue.ingredients 
-		WHERE name ILIKE $1 OR description ILIKE $1 
-		ORDER BY name`)).
+	params := models.PaginationParams{Page: 1, PerPage: 20}
+
+	suite.mock.ExpectQuery(regexp.QuoteMeta(`SELECT COUNT(*) FROM recipe_catalogue.ingredients WHERE name ILIKE $1 OR description ILIKE $1`)).
 		WithArgs("%tomato%").
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(2))
+
+	suite.mock.ExpectQuery(regexp.QuoteMeta(`
+		SELECT id, name, description, category, created_at
+		FROM recipe_catalogue.ingredients
+		WHERE name ILIKE $1 OR description ILIKE $1
+		ORDER BY name
+		LIMIT $2 OFFSET $3`)).
+		WithArgs("%tomato%", 20, 0).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "category", "created_at"}).
 			AddRow(1, "Tomato", "Fresh tomato", "Vegetable", now).
 			AddRow(2, "Cherry Tomato", "Small tomatoes", "Vegetable", now))
 
 	// Act
-	ingredients, err := suite.repo.SearchIngredients("tomato")
+	ingredients, total, err := suite.repo.SearchIngredients("tomato", params)
 
 	// Assert
 	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), 2, total)
 	assert.Len(suite.T(), ingredients, 2)
 	assert.Equal(suite.T(), "Tomato", ingredients[0].Name)
 	assert.Equal(suite.T(), "Cherry Tomato", ingredients[1].Name)
@@ -642,6 +666,16 @@ func (suite *IngredientRepositoryTestSuite) TestGetIngredientsForRecipes_EmptySl
 func (suite *IngredientRepositoryTestSuite) TestGetRecipesUsingIngredient_ReturnsRecipes() {
 	// Arrange
 	now := time.Now()
+	params := models.PaginationParams{Page: 1, PerPage: 20}
+
+	suite.mock.ExpectQuery(regexp.QuoteMeta(`
+		SELECT COUNT(DISTINCT r.id)
+		FROM recipe_catalogue.recipes r
+		JOIN recipe_catalogue.recipe_ingredients ri ON r.id = ri.recipe_id
+		WHERE ri.ingredient_id = $1`)).
+		WithArgs(1).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(2))
+
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT DISTINCT r.id, r.user_id, r.name, r.description, r.category_id, r.created_at, r.updated_at,
 		                c.id, c.name, c.description
@@ -649,8 +683,9 @@ func (suite *IngredientRepositoryTestSuite) TestGetRecipesUsingIngredient_Return
 		LEFT JOIN recipe_catalogue.categories c ON r.category_id = c.id
 		JOIN recipe_catalogue.recipe_ingredients ri ON r.id = ri.recipe_id
 		WHERE ri.ingredient_id = $1
-		ORDER BY r.name`)).
-		WithArgs(1).
+		ORDER BY r.name
+		LIMIT $2 OFFSET $3`)).
+		WithArgs(1, 20, 0).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "user_id", "name", "description", "category_id", "created_at", "updated_at",
 			"c_id", "c_name", "c_description",
@@ -659,10 +694,11 @@ func (suite *IngredientRepositoryTestSuite) TestGetRecipesUsingIngredient_Return
 			AddRow(2, 1, "Tomato Soup", "Fresh soup", 2, now, now, 2, "Soup", "Soup category"))
 
 	// Act
-	recipes, err := suite.repo.GetRecipesUsingIngredient(1)
+	recipes, total, err := suite.repo.GetRecipesUsingIngredient(1, params)
 
 	// Assert
 	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), 2, total)
 	assert.Len(suite.T(), recipes, 2)
 	assert.Equal(suite.T(), "Pasta Dish", recipes[0].Name)
 	assert.Equal(suite.T(), "Italian", recipes[0].Category.Name)
@@ -789,20 +825,26 @@ func TestIngredientRepository_EdgeCases(t *testing.T) {
 			defer db.Close()
 
 			repo := NewIngredientRepository(&database.DB{DB: db})
+			params := models.PaginationParams{Page: 1, PerPage: 20}
 
 			// Setup expectation
 			if tt.expectedQueries > 0 {
-				mock.ExpectQuery(regexp.QuoteMeta(`
-					SELECT id, name, description, category, created_at 
-					FROM recipe_catalogue.ingredients 
-					WHERE name ILIKE $1 OR description ILIKE $1 
-					ORDER BY name`)).
+				mock.ExpectQuery(regexp.QuoteMeta(`SELECT COUNT(*) FROM recipe_catalogue.ingredients WHERE name ILIKE $1 OR description ILIKE $1`)).
 					WithArgs("%" + tt.searchQuery + "%").
+					WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+
+				mock.ExpectQuery(regexp.QuoteMeta(`
+		SELECT id, name, description, category, created_at
+		FROM recipe_catalogue.ingredients
+		WHERE name ILIKE $1 OR description ILIKE $1
+		ORDER BY name
+		LIMIT $2 OFFSET $3`)).
+					WithArgs("%"+tt.searchQuery+"%", 20, 0).
 					WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "category", "created_at"}))
 			}
 
 			// Act
-			ingredients, err := repo.SearchIngredients(tt.searchQuery)
+			ingredients, _, err := repo.SearchIngredients(tt.searchQuery, params)
 
 			// Assert
 			if tt.expectError {
@@ -830,13 +872,19 @@ func BenchmarkIngredientRepository_GetAllIngredients(b *testing.B) {
 
 	repo := NewIngredientRepository(&database.DB{DB: db})
 	now := time.Now()
+	params := models.PaginationParams{Page: 1, PerPage: 20}
 
 	// Setup mock expectation for benchmarking
 	for i := 0; i < b.N; i++ {
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT COUNT(*) FROM recipe_catalogue.ingredients`)).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+
 		mock.ExpectQuery(regexp.QuoteMeta(`
-			SELECT id, name, description, category, created_at 
-			FROM recipe_catalogue.ingredients 
-			ORDER BY category, name`)).
+		SELECT id, name, description, category, created_at
+		FROM recipe_catalogue.ingredients
+		ORDER BY category, name
+		LIMIT $1 OFFSET $2`)).
+			WithArgs(20, 0).
 			WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "category", "created_at"}).
 				AddRow(1, "Benchmark Ingredient", "Desc", "Cat", now))
 	}
@@ -844,7 +892,7 @@ func BenchmarkIngredientRepository_GetAllIngredients(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		_, err := repo.GetAllIngredients()
+		_, _, err := repo.GetAllIngredients(params)
 		if err != nil {
 			b.Fatal(err)
 		}

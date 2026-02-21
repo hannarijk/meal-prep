@@ -31,3 +31,17 @@ func WriteSuccessResponse(w http.ResponseWriter, data interface{}, code int) {
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(data)
 }
+
+type PaginatedResponse struct {
+	Data       interface{}    `json:"data"`
+	Pagination PaginationMeta `json:"pagination"`
+}
+
+func WritePaginatedResponse(w http.ResponseWriter, data interface{}, meta PaginationMeta, code int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(PaginatedResponse{
+		Data:       data,
+		Pagination: meta,
+	})
+}

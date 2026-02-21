@@ -9,10 +9,10 @@ import (
 )
 
 type IngredientRepository interface {
-	GetAllIngredients() ([]models.Ingredient, error)
+	GetAllIngredients(params models.PaginationParams) ([]models.Ingredient, int, error)
 	GetIngredientByID(id int) (*models.Ingredient, error)
-	GetIngredientsByCategory(category string) ([]models.Ingredient, error)
-	SearchIngredients(query string) ([]models.Ingredient, error)
+	GetIngredientsByCategory(category string, params models.PaginationParams) ([]models.Ingredient, int, error)
+	SearchIngredients(query string, params models.PaginationParams) ([]models.Ingredient, int, error)
 	CreateIngredient(req models.CreateIngredientRequest) (*models.Ingredient, error)
 	UpdateIngredient(id int, req models.UpdateIngredientRequest) (*models.Ingredient, error)
 	DeleteIngredient(id int) error
@@ -25,7 +25,7 @@ type IngredientRepository interface {
 	SetRecipeIngredients(recipeID int, ingredients []models.AddRecipeIngredientRequest) error
 
 	GetIngredientsForRecipes(recipeIDs []int) (map[int][]models.RecipeIngredient, error)
-	GetRecipesUsingIngredient(ingredientID int) ([]models.Recipe, error)
+	GetRecipesUsingIngredient(ingredientID int, params models.PaginationParams) ([]models.Recipe, int, error)
 }
 
 type ingredientRepository struct {
@@ -36,15 +36,22 @@ func NewIngredientRepository(db *database.DB) IngredientRepository {
 	return &ingredientRepository{db: db}
 }
 
-func (r *ingredientRepository) GetAllIngredients() ([]models.Ingredient, error) {
-	query := `
-		SELECT id, name, description, category, created_at 
-		FROM recipe_catalogue.ingredients 
-		ORDER BY category, name`
-
-	rows, err := r.db.Query(query)
+func (r *ingredientRepository) GetAllIngredients(params models.PaginationParams) ([]models.Ingredient, int, error) {
+	var total int
+	err := r.db.QueryRow(`SELECT COUNT(*) FROM recipe_catalogue.ingredients`).Scan(&total)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	query := `
+		SELECT id, name, description, category, created_at
+		FROM recipe_catalogue.ingredients
+		ORDER BY category, name
+		LIMIT $1 OFFSET $2`
+
+	rows, err := r.db.Query(query, params.PerPage, params.Offset())
+	if err != nil {
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -52,34 +59,43 @@ func (r *ingredientRepository) GetAllIngredients() ([]models.Ingredient, error) 
 	for rows.Next() {
 		ingredient, err := r.scanIngredient(rows)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		ingredients = append(ingredients, *ingredient)
 	}
 
-	return ingredients, nil
+	return ingredients, total, nil
 }
 
 func (r *ingredientRepository) GetIngredientByID(id int) (*models.Ingredient, error) {
 	query := `
-		SELECT id, name, description, category, created_at 
-		FROM recipe_catalogue.ingredients 
+		SELECT id, name, description, category, created_at
+		FROM recipe_catalogue.ingredients
 		WHERE id = $1`
 
 	row := r.db.QueryRow(query, id)
 	return r.scanIngredient(row)
 }
 
-func (r *ingredientRepository) GetIngredientsByCategory(category string) ([]models.Ingredient, error) {
-	query := `
-		SELECT id, name, description, category, created_at 
-		FROM recipe_catalogue.ingredients 
-		WHERE category = $1 
-		ORDER BY name`
-
-	rows, err := r.db.Query(query, category)
+func (r *ingredientRepository) GetIngredientsByCategory(category string, params models.PaginationParams) ([]models.Ingredient, int, error) {
+	var total int
+	err := r.db.QueryRow(
+		`SELECT COUNT(*) FROM recipe_catalogue.ingredients WHERE category = $1`, category,
+	).Scan(&total)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	query := `
+		SELECT id, name, description, category, created_at
+		FROM recipe_catalogue.ingredients
+		WHERE category = $1
+		ORDER BY name
+		LIMIT $2 OFFSET $3`
+
+	rows, err := r.db.Query(query, category, params.PerPage, params.Offset())
+	if err != nil {
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -87,24 +103,35 @@ func (r *ingredientRepository) GetIngredientsByCategory(category string) ([]mode
 	for rows.Next() {
 		ingredient, err := r.scanIngredient(rows)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		ingredients = append(ingredients, *ingredient)
 	}
 
-	return ingredients, nil
+	return ingredients, total, nil
 }
 
-func (r *ingredientRepository) SearchIngredients(query string) ([]models.Ingredient, error) {
-	searchQuery := `
-		SELECT id, name, description, category, created_at 
-		FROM recipe_catalogue.ingredients 
-		WHERE name ILIKE $1 OR description ILIKE $1 
-		ORDER BY name`
+func (r *ingredientRepository) SearchIngredients(query string, params models.PaginationParams) ([]models.Ingredient, int, error) {
+	pattern := "%" + query + "%"
 
-	rows, err := r.db.Query(searchQuery, "%"+query+"%")
+	var total int
+	err := r.db.QueryRow(
+		`SELECT COUNT(*) FROM recipe_catalogue.ingredients WHERE name ILIKE $1 OR description ILIKE $1`, pattern,
+	).Scan(&total)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	searchQuery := `
+		SELECT id, name, description, category, created_at
+		FROM recipe_catalogue.ingredients
+		WHERE name ILIKE $1 OR description ILIKE $1
+		ORDER BY name
+		LIMIT $2 OFFSET $3`
+
+	rows, err := r.db.Query(searchQuery, pattern, params.PerPage, params.Offset())
+	if err != nil {
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -112,12 +139,12 @@ func (r *ingredientRepository) SearchIngredients(query string) ([]models.Ingredi
 	for rows.Next() {
 		ingredient, err := r.scanIngredient(rows)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		ingredients = append(ingredients, *ingredient)
 	}
 
-	return ingredients, nil
+	return ingredients, total, nil
 }
 
 func (r *ingredientRepository) CreateIngredient(req models.CreateIngredientRequest) (*models.Ingredient, error) {
@@ -143,7 +170,7 @@ func (r *ingredientRepository) CreateIngredient(req models.CreateIngredientReque
 
 func (r *ingredientRepository) UpdateIngredient(id int, req models.UpdateIngredientRequest) (*models.Ingredient, error) {
 	query := `
-        UPDATE recipe_catalogue.ingredients 
+        UPDATE recipe_catalogue.ingredients
         SET name = $2,
             description = $3,
             category = $4,
@@ -239,7 +266,7 @@ func (r *ingredientRepository) AddRecipeIngredient(recipeID int, req models.AddR
 
 func (r *ingredientRepository) UpdateRecipeIngredient(recipeID, ingredientID int, req models.AddRecipeIngredientRequest) (*models.RecipeIngredient, error) {
 	query := `
-		UPDATE recipe_catalogue.recipe_ingredients 
+		UPDATE recipe_catalogue.recipe_ingredients
 		SET quantity = $3, unit = $4, notes = $5
 		WHERE recipe_id = $1 AND ingredient_id = $2
 		RETURNING id, recipe_id, ingredient_id, quantity, unit, notes, created_at`
@@ -341,7 +368,18 @@ func (r *ingredientRepository) GetIngredientsForRecipes(recipeIDs []int) (map[in
 	return result, nil
 }
 
-func (r *ingredientRepository) GetRecipesUsingIngredient(ingredientID int) ([]models.Recipe, error) {
+func (r *ingredientRepository) GetRecipesUsingIngredient(ingredientID int, params models.PaginationParams) ([]models.Recipe, int, error) {
+	var total int
+	err := r.db.QueryRow(`
+		SELECT COUNT(DISTINCT r.id)
+		FROM recipe_catalogue.recipes r
+		JOIN recipe_catalogue.recipe_ingredients ri ON r.id = ri.recipe_id
+		WHERE ri.ingredient_id = $1`, ingredientID,
+	).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	query := `
 		SELECT DISTINCT r.id, r.user_id, r.name, r.description, r.category_id, r.created_at, r.updated_at,
 		                c.id, c.name, c.description
@@ -349,11 +387,12 @@ func (r *ingredientRepository) GetRecipesUsingIngredient(ingredientID int) ([]mo
 		LEFT JOIN recipe_catalogue.categories c ON r.category_id = c.id
 		JOIN recipe_catalogue.recipe_ingredients ri ON r.id = ri.recipe_id
 		WHERE ri.ingredient_id = $1
-		ORDER BY r.name`
+		ORDER BY r.name
+		LIMIT $2 OFFSET $3`
 
-	rows, err := r.db.Query(query, ingredientID)
+	rows, err := r.db.Query(query, ingredientID, params.PerPage, params.Offset())
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -369,7 +408,7 @@ func (r *ingredientRepository) GetRecipesUsingIngredient(ingredientID int) ([]mo
 			&category.ID, &category.Name, &categoryDesc,
 		)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
 		if categoryDesc.Valid {
@@ -380,7 +419,7 @@ func (r *ingredientRepository) GetRecipesUsingIngredient(ingredientID int) ([]mo
 		recipes = append(recipes, recipe)
 	}
 
-	return recipes, nil
+	return recipes, total, nil
 }
 
 // Helper methods

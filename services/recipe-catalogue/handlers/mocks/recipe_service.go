@@ -15,12 +15,12 @@ type MockRecipeService struct {
 // BASIC RECIPE OPERATIONS
 // =============================================================================
 
-func (m *MockRecipeService) GetAllRecipes() ([]models.Recipe, error) {
-	args := m.Called()
+func (m *MockRecipeService) GetAllRecipes(params models.PaginationParams) ([]models.Recipe, models.PaginationMeta, error) {
+	args := m.Called(params)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.Get(1).(models.PaginationMeta), args.Error(2)
 	}
-	return args.Get(0).([]models.Recipe), args.Error(1)
+	return args.Get(0).([]models.Recipe), args.Get(1).(models.PaginationMeta), args.Error(2)
 }
 
 func (m *MockRecipeService) GetRecipeByID(id int) (*models.Recipe, error) {
@@ -31,12 +31,12 @@ func (m *MockRecipeService) GetRecipeByID(id int) (*models.Recipe, error) {
 	return args.Get(0).(*models.Recipe), args.Error(1)
 }
 
-func (m *MockRecipeService) GetRecipesByCategory(categoryID int) ([]models.Recipe, error) {
-	args := m.Called(categoryID)
+func (m *MockRecipeService) GetRecipesByCategory(categoryID int, params models.PaginationParams) ([]models.Recipe, models.PaginationMeta, error) {
+	args := m.Called(categoryID, params)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.Get(1).(models.PaginationMeta), args.Error(2)
 	}
-	return args.Get(0).([]models.Recipe), args.Error(1)
+	return args.Get(0).([]models.Recipe), args.Get(1).(models.PaginationMeta), args.Error(2)
 }
 
 func (m *MockRecipeService) CreateRecipe(userID int, req models.CreateRecipeRequest) (*models.Recipe, error) {
@@ -72,12 +72,12 @@ func (m *MockRecipeService) GetAllCategories() ([]models.Category, error) {
 // RECIPES WITH INGREDIENTS OPERATIONS
 // =============================================================================
 
-func (m *MockRecipeService) GetAllRecipesWithIngredients() ([]models.RecipeWithIngredients, error) {
-	args := m.Called()
+func (m *MockRecipeService) GetAllRecipesWithIngredients(params models.PaginationParams) ([]models.RecipeWithIngredients, models.PaginationMeta, error) {
+	args := m.Called(params)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.Get(1).(models.PaginationMeta), args.Error(2)
 	}
-	return args.Get(0).([]models.RecipeWithIngredients), args.Error(1)
+	return args.Get(0).([]models.RecipeWithIngredients), args.Get(1).(models.PaginationMeta), args.Error(2)
 }
 
 func (m *MockRecipeService) GetRecipeByIDWithIngredients(id int) (*models.RecipeWithIngredients, error) {
@@ -88,12 +88,12 @@ func (m *MockRecipeService) GetRecipeByIDWithIngredients(id int) (*models.Recipe
 	return args.Get(0).(*models.RecipeWithIngredients), args.Error(1)
 }
 
-func (m *MockRecipeService) GetRecipesByCategoryWithIngredients(categoryID int) ([]models.RecipeWithIngredients, error) {
-	args := m.Called(categoryID)
+func (m *MockRecipeService) GetRecipesByCategoryWithIngredients(categoryID int, params models.PaginationParams) ([]models.RecipeWithIngredients, models.PaginationMeta, error) {
+	args := m.Called(categoryID, params)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.Get(1).(models.PaginationMeta), args.Error(2)
 	}
-	return args.Get(0).([]models.RecipeWithIngredients), args.Error(1)
+	return args.Get(0).([]models.RecipeWithIngredients), args.Get(1).(models.PaginationMeta), args.Error(2)
 }
 
 func (m *MockRecipeService) CreateRecipeWithIngredients(userID int, req models.CreateRecipeWithIngredientsRequest) (*models.RecipeWithIngredients, error) {
@@ -116,18 +116,18 @@ func (m *MockRecipeService) UpdateRecipeWithIngredients(userID int, id int, req 
 // SEARCH OPERATIONS
 // =============================================================================
 
-func (m *MockRecipeService) SearchRecipesByIngredients(ingredientIDs []int) ([]models.Recipe, error) {
-	args := m.Called(ingredientIDs)
+func (m *MockRecipeService) SearchRecipesByIngredients(ingredientIDs []int, params models.PaginationParams) ([]models.Recipe, models.PaginationMeta, error) {
+	args := m.Called(ingredientIDs, params)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.Get(1).(models.PaginationMeta), args.Error(2)
 	}
-	return args.Get(0).([]models.Recipe), args.Error(1)
+	return args.Get(0).([]models.Recipe), args.Get(1).(models.PaginationMeta), args.Error(2)
 }
 
-func (m *MockRecipeService) SearchRecipesByIngredientsWithIngredients(ingredientIDs []int) ([]models.RecipeWithIngredients, error) {
-	args := m.Called(ingredientIDs)
+func (m *MockRecipeService) SearchRecipesByIngredientsWithIngredients(ingredientIDs []int, params models.PaginationParams) ([]models.RecipeWithIngredients, models.PaginationMeta, error) {
+	args := m.Called(ingredientIDs, params)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.Get(1).(models.PaginationMeta), args.Error(2)
 	}
-	return args.Get(0).([]models.RecipeWithIngredients), args.Error(1)
+	return args.Get(0).([]models.RecipeWithIngredients), args.Get(1).(models.PaginationMeta), args.Error(2)
 }

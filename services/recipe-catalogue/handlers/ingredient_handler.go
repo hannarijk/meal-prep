@@ -23,16 +23,18 @@ func NewIngredientHandler(ingredientService service.IngredientService) *Ingredie
 func (h *IngredientHandler) GetAllIngredients(w http.ResponseWriter, r *http.Request) {
 	category := r.URL.Query().Get("category")
 	searchQuery := r.URL.Query().Get("search")
+	params := models.ParsePaginationParams(r)
 
 	var ingredients []models.Ingredient
+	var meta models.PaginationMeta
 	var err error
 
 	if searchQuery != "" {
-		ingredients, err = h.ingredientService.SearchIngredients(searchQuery)
+		ingredients, meta, err = h.ingredientService.SearchIngredients(searchQuery, params)
 	} else if category != "" {
-		ingredients, err = h.ingredientService.GetIngredientsByCategory(category)
+		ingredients, meta, err = h.ingredientService.GetIngredientsByCategory(category, params)
 	} else {
-		ingredients, err = h.ingredientService.GetAllIngredients()
+		ingredients, meta, err = h.ingredientService.GetAllIngredients(params)
 	}
 
 	if err != nil {
@@ -40,7 +42,7 @@ func (h *IngredientHandler) GetAllIngredients(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	models.WriteSuccessResponse(w, ingredients, http.StatusOK)
+	models.WritePaginatedResponse(w, ingredients, meta, http.StatusOK)
 }
 
 func (h *IngredientHandler) GetIngredientByID(w http.ResponseWriter, r *http.Request) {
@@ -171,7 +173,9 @@ func (h *IngredientHandler) GetRecipesUsingIngredient(w http.ResponseWriter, r *
 		return
 	}
 
-	recipes, err := h.ingredientService.GetRecipesUsingIngredient(id)
+	params := models.ParsePaginationParams(r)
+
+	recipes, meta, err := h.ingredientService.GetRecipesUsingIngredient(id, params)
 	if err != nil {
 		switch err {
 		case domain.ErrIngredientNotFound:
@@ -182,7 +186,7 @@ func (h *IngredientHandler) GetRecipesUsingIngredient(w http.ResponseWriter, r *
 		return
 	}
 
-	models.WriteSuccessResponse(w, recipes, http.StatusOK)
+	models.WritePaginatedResponse(w, recipes, meta, http.StatusOK)
 }
 
 func (h *IngredientHandler) GetRecipeIngredients(w http.ResponseWriter, r *http.Request) {

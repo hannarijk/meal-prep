@@ -48,7 +48,7 @@ func TestRecipeHandler_GetAllRecipes_Success(t *testing.T) {
 		testdata.NewRecipeBuilder().WithID(2).WithName("Recipe 2").Build(),
 	}
 
-	setup.recipeService.On("GetAllRecipes").Return(expectedRecipes, nil)
+	setup.recipeService.On("GetAllRecipes", mock.AnythingOfType("models.PaginationParams")).Return(expectedRecipes, models.PaginationMeta{}, nil)
 
 	req := httptest.NewRequest("GET", "/recipes", nil)
 	recorder := httptest.NewRecorder()
@@ -58,11 +58,14 @@ func TestRecipeHandler_GetAllRecipes_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, "application/json", recorder.Header().Get("Content-Type"))
 
-	var response []models.Recipe
+	var response struct {
+		Data       []models.Recipe       `json:"data"`
+		Pagination models.PaginationMeta `json:"pagination"`
+	}
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 	assert.NoError(t, err)
-	assert.Len(t, response, 2)
-	assert.Equal(t, "Recipe 1", response[0].Name)
+	assert.Len(t, response.Data, 2)
+	assert.Equal(t, "Recipe 1", response.Data[0].Name)
 
 	setup.recipeService.AssertExpectations(t)
 }
@@ -71,7 +74,7 @@ func TestRecipeHandler_GetAllRecipes_ServiceError(t *testing.T) {
 	setup := setupRecipeHandlerTest()
 	expectedError := errors.New("database error")
 
-	setup.recipeService.On("GetAllRecipes").Return(nil, expectedError)
+	setup.recipeService.On("GetAllRecipes", mock.AnythingOfType("models.PaginationParams")).Return(nil, models.PaginationMeta{}, expectedError)
 
 	req := httptest.NewRequest("GET", "/recipes", nil)
 	recorder := httptest.NewRecorder()
@@ -166,7 +169,7 @@ func TestRecipeHandler_GetRecipesByCategory_Success(t *testing.T) {
 		testdata.NewRecipeBuilder().WithID(1).WithCategoryID(1).Build(),
 	}
 
-	setup.recipeService.On("GetRecipesByCategory", 1).Return(expectedRecipes, nil)
+	setup.recipeService.On("GetRecipesByCategory", 1, mock.AnythingOfType("models.PaginationParams")).Return(expectedRecipes, models.PaginationMeta{}, nil)
 
 	req := httptest.NewRequest("GET", "/categories/1/recipes", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
@@ -176,10 +179,13 @@ func TestRecipeHandler_GetRecipesByCategory_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 
-	var response []models.Recipe
+	var response struct {
+		Data       []models.Recipe       `json:"data"`
+		Pagination models.PaginationMeta `json:"pagination"`
+	}
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 	assert.NoError(t, err)
-	assert.Len(t, response, 1)
+	assert.Len(t, response.Data, 1)
 
 	setup.recipeService.AssertExpectations(t)
 }
@@ -206,7 +212,7 @@ func TestRecipeHandler_GetRecipesByCategory_InvalidCategoryID(t *testing.T) {
 func TestRecipeHandler_GetRecipesByCategory_CategoryNotFound(t *testing.T) {
 	setup := setupRecipeHandlerTest()
 
-	setup.recipeService.On("GetRecipesByCategory", 999).Return(nil, domain.ErrCategoryNotFound)
+	setup.recipeService.On("GetRecipesByCategory", 999, mock.AnythingOfType("models.PaginationParams")).Return(nil, models.PaginationMeta{}, domain.ErrCategoryNotFound)
 
 	req := httptest.NewRequest("GET", "/categories/999/recipes", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "999"})
@@ -228,7 +234,7 @@ func TestRecipeHandler_GetRecipesByCategory_RecipesDontExistForCategory(t *testi
 	setup := setupRecipeHandlerTest()
 
 	emptyRecipes := make([]models.Recipe, 0)
-	setup.recipeService.On("GetRecipesByCategory", 1).Return(emptyRecipes, nil)
+	setup.recipeService.On("GetRecipesByCategory", 1, mock.AnythingOfType("models.PaginationParams")).Return(emptyRecipes, models.PaginationMeta{}, nil)
 
 	req := httptest.NewRequest("GET", "/categories/1/recipes", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
@@ -239,10 +245,13 @@ func TestRecipeHandler_GetRecipesByCategory_RecipesDontExistForCategory(t *testi
 	// Should return 200 + empty array
 	assert.Equal(t, http.StatusOK, recorder.Code)
 
-	var response []models.Recipe
+	var response struct {
+		Data       []models.Recipe       `json:"data"`
+		Pagination models.PaginationMeta `json:"pagination"`
+	}
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 	assert.NoError(t, err)
-	assert.Len(t, response, 0) // Empty array
+	assert.Len(t, response.Data, 0) // Empty array
 
 	setup.recipeService.AssertExpectations(t)
 }

@@ -235,9 +235,12 @@ func (suite *RecipeIngredientsE2ETestSuite) TestCreateRecipeWithIngredientSearch
 	resp = suite.testHttpClient.MakeRequest(suite.T(), "GET", baseURL+"/ingredients?search=chicken", nil)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var chickenSearchResults []map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&chickenSearchResults)
+	var chickenSearchResp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&chickenSearchResp)
 	assert.NoError(suite.T(), err)
+	chickenSearchResults := chickenSearchResp.Data
 	assert.GreaterOrEqual(suite.T(), len(chickenSearchResults), 1, "Should find chicken ingredients")
 
 	// Find and pick chicken breast from search results
@@ -256,9 +259,12 @@ func (suite *RecipeIngredientsE2ETestSuite) TestCreateRecipeWithIngredientSearch
 	resp = suite.testHttpClient.MakeRequest(suite.T(), "GET", baseURL+"/ingredients?search=garlic", nil)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var garlicSearchResults []map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&garlicSearchResults)
+	var garlicSearchResp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&garlicSearchResp)
 	assert.NoError(suite.T(), err)
+	garlicSearchResults := garlicSearchResp.Data
 	assert.GreaterOrEqual(suite.T(), len(garlicSearchResults), 1, "Should find garlic ingredients")
 
 	// Find and pick garlic from search results
@@ -277,9 +283,12 @@ func (suite *RecipeIngredientsE2ETestSuite) TestCreateRecipeWithIngredientSearch
 	resp = suite.testHttpClient.MakeRequest(suite.T(), "GET", baseURL+"/ingredients?search=oil", nil)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var oilSearchResults []map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&oilSearchResults)
+	var oilSearchResp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&oilSearchResp)
 	assert.NoError(suite.T(), err)
+	oilSearchResults := oilSearchResp.Data
 	assert.GreaterOrEqual(suite.T(), len(oilSearchResults), 1, "Should find oil ingredients")
 
 	// Find and pick olive oil from search results
@@ -395,9 +404,12 @@ func (suite *RecipeIngredientsE2ETestSuite) TestCreateRecipeWithIngredientSearch
 	resp = suite.testHttpClient.MakeRequest(suite.T(), "GET", baseURL+"/ingredients?search=chick", nil)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var partialSearchResults []map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&partialSearchResults)
+	var partialSearchResp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&partialSearchResp)
 	assert.NoError(suite.T(), err)
+	partialSearchResults := partialSearchResp.Data
 
 	// Should still find chicken breast with partial search
 	partialChickenFound := false
@@ -413,9 +425,12 @@ func (suite *RecipeIngredientsE2ETestSuite) TestCreateRecipeWithIngredientSearch
 	resp = suite.testHttpClient.MakeRequest(suite.T(), "GET", baseURL+"/ingredients?search=OLIVE", nil)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var caseInsensitiveResults []map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&caseInsensitiveResults)
+	var caseInsensitiveResp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&caseInsensitiveResp)
 	assert.NoError(suite.T(), err)
+	caseInsensitiveResults := caseInsensitiveResp.Data
 
 	// Should find olive oil with uppercase search
 	upperCaseOilFound := false
@@ -431,9 +446,12 @@ func (suite *RecipeIngredientsE2ETestSuite) TestCreateRecipeWithIngredientSearch
 	resp = suite.testHttpClient.MakeRequest(suite.T(), "GET", baseURL+"/ingredients?search=nonexistent", nil)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var emptyResults []map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&emptyResults)
+	var emptyResp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&emptyResp)
 	assert.NoError(suite.T(), err)
+	emptyResults := emptyResp.Data
 	assert.Equal(suite.T(), 0, len(emptyResults), "Search for non-existent ingredient should return empty results")
 
 	// Step 6: Verify recipe appears in ingredient usage lists
@@ -441,9 +459,12 @@ func (suite *RecipeIngredientsE2ETestSuite) TestCreateRecipeWithIngredientSearch
 		fmt.Sprintf("%s/ingredients/%d/recipes", baseURL, chickenBreastID), nil)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var recipesUsingChicken []map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&recipesUsingChicken)
+	var recipesUsingChickenResp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&recipesUsingChickenResp)
 	assert.NoError(suite.T(), err)
+	recipesUsingChicken := recipesUsingChickenResp.Data
 
 	// Should find our new recipe in the list
 	honeyGarlicFound := false
@@ -473,9 +494,12 @@ func (suite *RecipeIngredientsE2ETestSuite) TestModifyExistingRecipeIngredients_
 	resp := suite.testHttpClient.MakeRequest(suite.T(), "GET", baseURL+"/ingredients?search=oil", nil)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var oilOptions []map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&oilOptions)
+	var oilOptionsResp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&oilOptionsResp)
 	assert.NoError(suite.T(), err)
+	oilOptions := oilOptionsResp.Data
 
 	// Pick olive oil
 	var oliveOilID int
@@ -539,9 +563,12 @@ func (suite *RecipeIngredientsE2ETestSuite) TestCrossRecipeIngredientUsage_Analy
 		fmt.Sprintf("%s/ingredients/%d/recipes", baseURL, oliveOilID), nil)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var recipesUsingOliveOil []map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&recipesUsingOliveOil)
+	var recipesUsingOliveOilResp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&recipesUsingOliveOilResp)
 	assert.NoError(suite.T(), err)
+	recipesUsingOliveOil := recipesUsingOliveOilResp.Data
 
 	// Store recipe names for verification
 	recipeNames := make([]string, 0)
@@ -595,9 +622,12 @@ func (suite *RecipeIngredientsE2ETestSuite) TestCrossRecipeIngredientUsage_Analy
 		fmt.Sprintf("%s/ingredients/%d/recipes", baseURL, oliveOilID), nil)
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 
-	var updatedRecipesUsingOliveOil []map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&updatedRecipesUsingOliveOil)
+	var updatedRecipesUsingOliveOilResp struct {
+		Data []map[string]interface{} `json:"data"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&updatedRecipesUsingOliveOilResp)
 	assert.NoError(suite.T(), err)
+	updatedRecipesUsingOliveOil := updatedRecipesUsingOliveOilResp.Data
 
 	// Should have more recipes than before
 	assert.GreaterOrEqual(suite.T(), len(updatedRecipesUsingOliveOil), len(recipesUsingOliveOil),
