@@ -22,6 +22,7 @@ type UpdateCategoryRequest struct {
 
 type Recipe struct {
 	ID          int       `json:"id"`
+	UserID      int       `json:"user_id"`
 	Name        string    `json:"name"`
 	Description *string   `json:"description,omitempty"`
 	CategoryID  *int      `json:"category_id,omitempty"`

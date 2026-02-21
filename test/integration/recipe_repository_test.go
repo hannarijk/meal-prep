@@ -118,7 +118,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestGetAll_WithRecipes() {
 		Description: "Classic Italian pasta dish",
 		CategoryID:  suite.italianCategoryID,
 	}
-	_, err := suite.recipeRepo.Create(recipe1)
+	_, err := suite.recipeRepo.Create(1, recipe1)
 	require.NoError(suite.T(), err)
 
 	recipe2 := models.CreateRecipeRequest{
@@ -126,7 +126,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestGetAll_WithRecipes() {
 		Description: "Fresh healthy salad",
 		CategoryID:  suite.healthyCategoryID,
 	}
-	_, err = suite.recipeRepo.Create(recipe2)
+	_, err = suite.recipeRepo.Create(1, recipe2)
 	require.NoError(suite.T(), err)
 
 	recipes, err := suite.recipeRepo.GetAll()
@@ -152,7 +152,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestGetByID_ExistingRecipe() {
 		Description: "Classic Italian pizza",
 		CategoryID:  suite.italianCategoryID,
 	}
-	createdRecipe, err := suite.recipeRepo.Create(recipe)
+	createdRecipe, err := suite.recipeRepo.Create(1, recipe)
 	require.NoError(suite.T(), err)
 
 	foundRecipe, err := suite.recipeRepo.GetByID(createdRecipe.ID)
@@ -181,7 +181,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestCreate_ValidRecipe() {
 		CategoryID:  suite.italianCategoryID,
 	}
 
-	createdRecipe, err := suite.recipeRepo.Create(recipe)
+	createdRecipe, err := suite.recipeRepo.Create(1, recipe)
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), createdRecipe)
@@ -205,7 +205,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestCreate_InvalidCategory() {
 		CategoryID:  99999, // Non-existent category
 	}
 
-	createdRecipe, err := suite.recipeRepo.Create(recipe)
+	createdRecipe, err := suite.recipeRepo.Create(1, recipe)
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), createdRecipe)
@@ -219,7 +219,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestUpdate_ExistingRecipe() {
 		Description: "Original description",
 		CategoryID:  suite.italianCategoryID,
 	}
-	createdRecipe, err := suite.recipeRepo.Create(recipe)
+	createdRecipe, err := suite.recipeRepo.Create(1, recipe)
 	require.NoError(suite.T(), err)
 
 	// Update recipe
@@ -266,7 +266,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestDelete_ExistingRecipe() {
 		Description: "This will be deleted",
 		CategoryID:  suite.italianCategoryID,
 	}
-	createdRecipe, err := suite.recipeRepo.Create(recipe)
+	createdRecipe, err := suite.recipeRepo.Create(1, recipe)
 	require.NoError(suite.T(), err)
 
 	// Delete recipe
@@ -297,21 +297,21 @@ func (suite *RecipeRepositoryIntegrationSuite) TestGetByCategory_WithRecipes() {
 		Description: "Spring pasta",
 		CategoryID:  suite.italianCategoryID,
 	}
-	suite.recipeRepo.Create(italianRecipe)
+	suite.recipeRepo.Create(1, italianRecipe)
 
 	healthyRecipe1 := models.CreateRecipeRequest{
 		Name:        "Green Smoothie",
 		Description: "Healthy smoothie",
 		CategoryID:  suite.healthyCategoryID,
 	}
-	suite.recipeRepo.Create(healthyRecipe1)
+	suite.recipeRepo.Create(1, healthyRecipe1)
 
 	healthyRecipe2 := models.CreateRecipeRequest{
 		Name:        "Quinoa Bowl",
 		Description: "Nutritious bowl",
 		CategoryID:  suite.healthyCategoryID,
 	}
-	suite.recipeRepo.Create(healthyRecipe2)
+	suite.recipeRepo.Create(1, healthyRecipe2)
 
 	// Get recipes by category
 	healthyRecipes, err := suite.recipeRepo.GetByCategory(suite.healthyCategoryID)
@@ -366,7 +366,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestCreateWithIngredients_Success
 		},
 	}
 
-	result, err := suite.recipeRepo.CreateWithIngredients(req)
+	result, err := suite.recipeRepo.CreateWithIngredients(1, req)
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), result)
@@ -395,7 +395,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestCreateWithIngredients_NoIngre
 		Ingredients: []models.AddRecipeIngredientRequest{},
 	}
 
-	result, err := suite.recipeRepo.CreateWithIngredients(req)
+	result, err := suite.recipeRepo.CreateWithIngredients(1, req)
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), result)
@@ -424,7 +424,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestGetByIDWithIngredients_Existi
 			},
 		},
 	}
-	created, err := suite.recipeRepo.CreateWithIngredients(req)
+	created, err := suite.recipeRepo.CreateWithIngredients(1, req)
 	require.NoError(suite.T(), err)
 
 	// Get recipe with ingredients
@@ -454,7 +454,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestGetAllWithIngredients_Multipl
 			{IngredientID: suite.pastaIngredientID, Quantity: 100.0, Unit: "grams", Notes: nil},
 		},
 	}
-	suite.recipeRepo.CreateWithIngredients(recipe1)
+	suite.recipeRepo.CreateWithIngredients(1, recipe1)
 
 	recipe2 := models.CreateRecipeWithIngredientsRequest{
 		Name:        "Cheese Salad",
@@ -464,7 +464,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestGetAllWithIngredients_Multipl
 			{IngredientID: suite.cheeseIngredientID, Quantity: 30.0, Unit: "grams", Notes: helpers.StringPtr("Crumbled")},
 		},
 	}
-	suite.recipeRepo.CreateWithIngredients(recipe2)
+	suite.recipeRepo.CreateWithIngredients(1, recipe2)
 
 	results, err := suite.recipeRepo.GetAllWithIngredients()
 
@@ -490,7 +490,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestUpdateWithIngredients_Success
 			{IngredientID: suite.tomatoIngredientID, Quantity: 1.0, Unit: "piece", Notes: nil},
 		},
 	}
-	created, err := suite.recipeRepo.CreateWithIngredients(createReq)
+	created, err := suite.recipeRepo.CreateWithIngredients(1, createReq)
 	require.NoError(suite.T(), err)
 
 	// Update recipe with different ingredients
@@ -529,7 +529,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestGetByCategoryWithIngredients_
 			{IngredientID: suite.tomatoIngredientID, Quantity: 2.0, Unit: "pieces", Notes: nil},
 		},
 	}
-	suite.recipeRepo.CreateWithIngredients(recipe1)
+	suite.recipeRepo.CreateWithIngredients(1, recipe1)
 
 	recipe2 := models.CreateRecipeWithIngredientsRequest{
 		Name:       "Italian Recipe 2",
@@ -538,7 +538,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestGetByCategoryWithIngredients_
 			{IngredientID: suite.pastaIngredientID, Quantity: 100.0, Unit: "grams", Notes: nil},
 		},
 	}
-	suite.recipeRepo.CreateWithIngredients(recipe2)
+	suite.recipeRepo.CreateWithIngredients(1, recipe2)
 
 	// Create recipe in different category
 	recipe3 := models.CreateRecipeWithIngredientsRequest{
@@ -548,7 +548,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestGetByCategoryWithIngredients_
 			{IngredientID: suite.cheeseIngredientID, Quantity: 30.0, Unit: "grams", Notes: nil},
 		},
 	}
-	suite.recipeRepo.CreateWithIngredients(recipe3)
+	suite.recipeRepo.CreateWithIngredients(1, recipe3)
 
 	// Get Italian recipes with ingredients
 	results, err := suite.recipeRepo.GetByCategoryWithIngredients(suite.italianCategoryID)
@@ -578,7 +578,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestSearchRecipesByIngredients_Ma
 			{IngredientID: suite.pastaIngredientID, Quantity: 100.0, Unit: "grams", Notes: nil},
 		},
 	}
-	suite.recipeRepo.CreateWithIngredients(tomatoPasta)
+	suite.recipeRepo.CreateWithIngredients(1, tomatoPasta)
 
 	cheesePasta := models.CreateRecipeWithIngredientsRequest{
 		Name:        "Cheese Pasta",
@@ -589,7 +589,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestSearchRecipesByIngredients_Ma
 			{IngredientID: suite.cheeseIngredientID, Quantity: 50.0, Unit: "grams", Notes: nil},
 		},
 	}
-	suite.recipeRepo.CreateWithIngredients(cheesePasta)
+	suite.recipeRepo.CreateWithIngredients(1, cheesePasta)
 
 	tomatoSalad := models.CreateRecipeWithIngredientsRequest{
 		Name:        "Tomato Salad",
@@ -599,7 +599,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestSearchRecipesByIngredients_Ma
 			{IngredientID: suite.tomatoIngredientID, Quantity: 3.0, Unit: "pieces", Notes: helpers.StringPtr("Diced")},
 		},
 	}
-	suite.recipeRepo.CreateWithIngredients(tomatoSalad)
+	suite.recipeRepo.CreateWithIngredients(1, tomatoSalad)
 
 	// Search for recipes containing tomato
 	recipes, err := suite.recipeRepo.SearchRecipesByIngredients([]int{suite.tomatoIngredientID})
@@ -632,7 +632,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestSearchRecipesByIngredients_No
 			{IngredientID: suite.pastaIngredientID, Quantity: 100.0, Unit: "grams", Notes: nil},
 		},
 	}
-	suite.recipeRepo.CreateWithIngredients(recipe)
+	suite.recipeRepo.CreateWithIngredients(1, recipe)
 
 	// Search for recipes with tomato
 	recipes, err := suite.recipeRepo.SearchRecipesByIngredients([]int{suite.tomatoIngredientID})
@@ -652,7 +652,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestSearchRecipesByIngredientsWit
 			{IngredientID: suite.pastaIngredientID, Quantity: 100.0, Unit: "grams", Notes: nil},
 		},
 	}
-	suite.recipeRepo.CreateWithIngredients(recipe)
+	suite.recipeRepo.CreateWithIngredients(1, recipe)
 
 	// Search with complete ingredient data
 	results, err := suite.recipeRepo.SearchRecipesByIngredientsWithIngredients([]int{suite.tomatoIngredientID})
@@ -688,7 +688,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestTransactionRollback_CreateWit
 		},
 	}
 
-	result, err := suite.recipeRepo.CreateWithIngredients(req)
+	result, err := suite.recipeRepo.CreateWithIngredients(1, req)
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), result)
@@ -709,7 +709,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestConcurrentAccess_MultipleCrea
 			Name:       "Concurrent Recipe 1",
 			CategoryID: suite.italianCategoryID,
 		}
-		_, err := suite.recipeRepo.Create(recipe)
+		_, err := suite.recipeRepo.Create(1, recipe)
 		assert.NoError(suite.T(), err)
 		done <- true
 	}()
@@ -719,7 +719,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestConcurrentAccess_MultipleCrea
 			Name:       "Concurrent Recipe 2",
 			CategoryID: suite.healthyCategoryID,
 		}
-		_, err := suite.recipeRepo.Create(recipe)
+		_, err := suite.recipeRepo.Create(1, recipe)
 		assert.NoError(suite.T(), err)
 		done <- true
 	}()
@@ -756,7 +756,7 @@ func (suite *RecipeRepositoryIntegrationSuite) TestPointerFields_NilValueHandlin
 		},
 	}
 
-	result, err := suite.recipeRepo.CreateWithIngredients(req)
+	result, err := suite.recipeRepo.CreateWithIngredients(1, req)
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), result)

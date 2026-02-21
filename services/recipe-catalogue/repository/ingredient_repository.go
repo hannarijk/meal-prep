@@ -343,7 +343,7 @@ func (r *ingredientRepository) GetIngredientsForRecipes(recipeIDs []int) (map[in
 
 func (r *ingredientRepository) GetRecipesUsingIngredient(ingredientID int) ([]models.Recipe, error) {
 	query := `
-		SELECT DISTINCT r.id, r.name, r.description, r.category_id, r.created_at, r.updated_at,
+		SELECT DISTINCT r.id, r.user_id, r.name, r.description, r.category_id, r.created_at, r.updated_at,
 		                c.id, c.name, c.description
 		FROM recipe_catalogue.recipes r
 		LEFT JOIN recipe_catalogue.categories c ON r.category_id = c.id
@@ -364,7 +364,7 @@ func (r *ingredientRepository) GetRecipesUsingIngredient(ingredientID int) ([]mo
 		var categoryDesc sql.NullString
 
 		err := rows.Scan(
-			&recipe.ID, &recipe.Name, &recipe.Description, &recipe.CategoryID,
+			&recipe.ID, &recipe.UserID, &recipe.Name, &recipe.Description, &recipe.CategoryID,
 			&recipe.CreatedAt, &recipe.UpdatedAt,
 			&category.ID, &category.Name, &categoryDesc,
 		)

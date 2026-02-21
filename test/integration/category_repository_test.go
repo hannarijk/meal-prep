@@ -428,7 +428,7 @@ func (suite *CategoryRepositoryIntegrationSuite) TestDelete_WithRecipes_ShouldFa
 		Description: "Recipe description",
 		CategoryID:  category.ID,
 	}
-	_, err = suite.recipeRepo.Create(recipeReq)
+	_, err = suite.recipeRepo.Create(1, recipeReq)
 	require.NoError(suite.T(), err)
 
 	// Try to delete category - should fail due to foreign key constraint

@@ -33,8 +33,13 @@ func (m *MockRecipeRepository) GetByCategory(categoryID int) ([]models.Recipe, e
 	return args.Get(0).([]models.Recipe), args.Error(1)
 }
 
-func (m *MockRecipeRepository) Create(req models.CreateRecipeRequest) (*models.Recipe, error) {
-	args := m.Called(req)
+func (m *MockRecipeRepository) GetOwnerID(id int) (int, error) {
+	args := m.Called(id)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *MockRecipeRepository) Create(userID int, req models.CreateRecipeRequest) (*models.Recipe, error) {
+	args := m.Called(userID, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -78,8 +83,8 @@ func (m *MockRecipeRepository) GetByCategoryWithIngredients(categoryID int) ([]m
 	return args.Get(0).([]models.RecipeWithIngredients), args.Error(1)
 }
 
-func (m *MockRecipeRepository) CreateWithIngredients(req models.CreateRecipeWithIngredientsRequest) (*models.RecipeWithIngredients, error) {
-	args := m.Called(req)
+func (m *MockRecipeRepository) CreateWithIngredients(userID int, req models.CreateRecipeWithIngredientsRequest) (*models.RecipeWithIngredients, error) {
+	args := m.Called(userID, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

@@ -187,10 +187,10 @@ func TestRecipeService_CreateRecipe_Success(t *testing.T) {
 	expectedRecipe := testdata.NewRecipeBuilder().WithName("Test Recipe").BuildPtr()
 
 	setup.categoryRepo.On("Exists", 1).Return(true, nil)
-	setup.recipeRepo.On("Create", mock.AnythingOfType("models.CreateRecipeRequest")).
+	setup.recipeRepo.On("Create", 1, mock.AnythingOfType("models.CreateRecipeRequest")).
 		Return(expectedRecipe, nil)
 
-	result, err := setup.service.CreateRecipe(request)
+	result, err := setup.service.CreateRecipe(1, request)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -231,7 +231,7 @@ func TestRecipeService_CreateRecipe_ValidationErrors(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			setup := setupRecipeServiceTest()
 
-			result, err := setup.service.CreateRecipe(tc.request)
+			result, err := setup.service.CreateRecipe(1, tc.request)
 
 			assert.Error(t, err)
 			assert.Nil(t, result)
@@ -248,7 +248,7 @@ func TestRecipeService_CreateRecipe_CategoryNotFound(t *testing.T) {
 
 	setup.categoryRepo.On("Exists", 999).Return(false, nil)
 
-	result, err := setup.service.CreateRecipe(request)
+	result, err := setup.service.CreateRecipe(1, request)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -265,15 +265,14 @@ func TestRecipeService_UpdateRecipe_Success(t *testing.T) {
 	setup := setupRecipeServiceTest()
 	recipeID := 1
 	request := testdata.NewUpdateRecipeRequestBuilder().WithName("Updated Recipe").Build()
-	existingRecipe := testdata.NewRecipeBuilder().WithID(recipeID).BuildPtr()
 	updatedRecipe := testdata.NewRecipeBuilder().WithID(recipeID).WithName("Updated Recipe").BuildPtr()
 
-	setup.recipeRepo.On("GetByID", recipeID).Return(existingRecipe, nil)
+	setup.recipeRepo.On("GetOwnerID", recipeID).Return(1, nil)
 	setup.categoryRepo.On("Exists", request.CategoryID).Return(true, nil)
 	setup.recipeRepo.On("Update", recipeID, mock.AnythingOfType("models.UpdateRecipeRequest")).
 		Return(updatedRecipe, nil)
 
-	result, err := setup.service.UpdateRecipe(recipeID, request)
+	result, err := setup.service.UpdateRecipe(1, recipeID, request)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -291,12 +290,12 @@ func TestRecipeService_UpdateRecipe_RequiresName(t *testing.T) {
 		CategoryID:  1,
 	}
 
-	result, err := setup.service.UpdateRecipe(recipeID, updateReq)
+	result, err := setup.service.UpdateRecipe(1, recipeID, updateReq)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Equal(t, domain.ErrRecipeNameRequired, err)
-	setup.recipeRepo.AssertNotCalled(t, "GetByID")
+	setup.recipeRepo.AssertNotCalled(t, "GetOwnerID")
 }
 
 func TestRecipeService_UpdateRecipe_InvalidCategoryId(t *testing.T) {
@@ -308,12 +307,12 @@ func TestRecipeService_UpdateRecipe_InvalidCategoryId(t *testing.T) {
 		CategoryID:  0, // Should fail validation
 	}
 
-	result, err := setup.service.UpdateRecipe(recipeID, updateReq)
+	result, err := setup.service.UpdateRecipe(1, recipeID, updateReq)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Equal(t, domain.ErrInvalidCategory, err)
-	setup.recipeRepo.AssertNotCalled(t, "GetByID")
+	setup.recipeRepo.AssertNotCalled(t, "GetOwnerID")
 }
 
 func TestRecipeService_UpdateRecipe_InvalidID(t *testing.T) {
@@ -324,12 +323,12 @@ func TestRecipeService_UpdateRecipe_InvalidID(t *testing.T) {
 			setup := setupRecipeServiceTest()
 			request := testdata.NewUpdateRecipeRequestBuilder().Build()
 
-			result, err := setup.service.UpdateRecipe(id, request)
+			result, err := setup.service.UpdateRecipe(1, id, request)
 
 			assert.Error(t, err)
 			assert.Nil(t, result)
 			assert.Equal(t, domain.ErrRecipeNotFound, err)
-			setup.recipeRepo.AssertNotCalled(t, "GetByID")
+			setup.recipeRepo.AssertNotCalled(t, "GetOwnerID")
 		})
 	}
 }
@@ -339,9 +338,9 @@ func TestRecipeService_UpdateRecipe_RecipeNotFound(t *testing.T) {
 	recipeID := 999
 	request := testdata.NewUpdateRecipeRequestBuilder().Build()
 
-	setup.recipeRepo.On("GetByID", recipeID).Return(nil, sql.ErrNoRows)
+	setup.recipeRepo.On("GetOwnerID", recipeID).Return(0, sql.ErrNoRows)
 
-	result, err := setup.service.UpdateRecipe(recipeID, request)
+	result, err := setup.service.UpdateRecipe(1, recipeID, request)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -357,9 +356,10 @@ func TestRecipeService_DeleteRecipe_Success(t *testing.T) {
 	setup := setupRecipeServiceTest()
 	recipeID := 1
 
+	setup.recipeRepo.On("GetOwnerID", recipeID).Return(1, nil)
 	setup.recipeRepo.On("Delete", recipeID).Return(nil)
 
-	err := setup.service.DeleteRecipe(recipeID)
+	err := setup.service.DeleteRecipe(1, recipeID)
 
 	assert.NoError(t, err)
 	setup.recipeRepo.AssertExpectations(t)
@@ -372,7 +372,7 @@ func TestRecipeService_DeleteRecipe_InvalidID(t *testing.T) {
 		t.Run(fmt.Sprintf("id_%d", id), func(t *testing.T) {
 			setup := setupRecipeServiceTest()
 
-			err := setup.service.DeleteRecipe(id)
+			err := setup.service.DeleteRecipe(1, id)
 
 			assert.Error(t, err)
 			assert.Equal(t, domain.ErrRecipeNotFound, err)
@@ -385,13 +385,47 @@ func TestRecipeService_DeleteRecipe_NotFound(t *testing.T) {
 	setup := setupRecipeServiceTest()
 	recipeID := 999
 
-	setup.recipeRepo.On("Delete", recipeID).Return(sql.ErrNoRows)
+	setup.recipeRepo.On("GetOwnerID", recipeID).Return(0, sql.ErrNoRows)
 
-	err := setup.service.DeleteRecipe(recipeID)
+	err := setup.service.DeleteRecipe(1, recipeID)
 
 	assert.Error(t, err)
 	assert.Equal(t, domain.ErrRecipeNotFound, err)
 	setup.recipeRepo.AssertExpectations(t)
+}
+
+// =============================================================================
+// OWNERSHIP TESTS
+// =============================================================================
+
+func TestRecipeService_UpdateRecipe_Forbidden(t *testing.T) {
+	setup := setupRecipeServiceTest()
+	recipeID := 1
+	request := testdata.NewUpdateRecipeRequestBuilder().WithName("Updated Recipe").Build()
+
+	// Recipe exists but is owned by user 2, not the caller (user 1)
+	setup.recipeRepo.On("GetOwnerID", recipeID).Return(2, nil)
+
+	result, err := setup.service.UpdateRecipe(1, recipeID, request)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, domain.ErrForbidden, err)
+	setup.recipeRepo.AssertNotCalled(t, "Update")
+}
+
+func TestRecipeService_DeleteRecipe_Forbidden(t *testing.T) {
+	setup := setupRecipeServiceTest()
+	recipeID := 1
+
+	// Recipe exists but is owned by user 2, not the caller (user 1)
+	setup.recipeRepo.On("GetOwnerID", recipeID).Return(2, nil)
+
+	err := setup.service.DeleteRecipe(1, recipeID)
+
+	assert.Error(t, err)
+	assert.Equal(t, domain.ErrForbidden, err)
+	setup.recipeRepo.AssertNotCalled(t, "Delete")
 }
 
 // =============================================================================
@@ -552,10 +586,10 @@ func TestRecipeService_CreateRecipeWithIngredients_Success(t *testing.T) {
 
 	setup.categoryRepo.On("Exists", 1).Return(true, nil)
 	setup.ingredientRepo.On("IngredientExists", 1).Return(true, nil)
-	setup.recipeRepo.On("CreateWithIngredients", mock.AnythingOfType("models.CreateRecipeWithIngredientsRequest")).
+	setup.recipeRepo.On("CreateWithIngredients", 1, mock.AnythingOfType("models.CreateRecipeWithIngredientsRequest")).
 		Return(expectedResult, nil)
 
-	result, err := setup.service.CreateRecipeWithIngredients(request)
+	result, err := setup.service.CreateRecipeWithIngredients(1, request)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -637,7 +671,7 @@ func TestRecipeService_CreateRecipeWithIngredients_ValidationErrors(t *testing.T
 			// Set up conditional mocks based on test case
 			tc.setupMocks(setup)
 
-			result, err := setup.service.CreateRecipeWithIngredients(tc.request)
+			result, err := setup.service.CreateRecipeWithIngredients(1, tc.request)
 
 			assert.Error(t, err)
 			assert.Nil(t, result)
@@ -665,16 +699,15 @@ func TestRecipeService_UpdateRecipeWithIngredients_Success(t *testing.T) {
 			{IngredientID: 1, Quantity: 150.0, Unit: "grams"},
 		},
 	}
-	existingRecipe := testdata.NewRecipeBuilder().WithID(recipeID).BuildPtr()
 	expectedResult := testdata.NewRecipeWithIngredientsBuilder().BuildPtr()
 
-	setup.recipeRepo.On("GetByID", recipeID).Return(existingRecipe, nil)
+	setup.recipeRepo.On("GetOwnerID", recipeID).Return(1, nil)
 	setup.categoryRepo.On("Exists", 1).Return(true, nil)
 	setup.ingredientRepo.On("IngredientExists", 1).Return(true, nil)
 	setup.recipeRepo.On("UpdateWithIngredients", recipeID, mock.AnythingOfType("models.UpdateRecipeWithIngredientsRequest")).
 		Return(expectedResult, nil)
 
-	result, err := setup.service.UpdateRecipeWithIngredients(recipeID, request)
+	result, err := setup.service.UpdateRecipeWithIngredients(1, recipeID, request)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -686,7 +719,7 @@ func TestRecipeService_UpdateRecipeWithIngredients_InvalidID(t *testing.T) {
 	setup := setupRecipeServiceTest()
 	request := models.UpdateRecipeWithIngredientsRequest{}
 
-	result, err := setup.service.UpdateRecipeWithIngredients(0, request)
+	result, err := setup.service.UpdateRecipeWithIngredients(1, 0, request)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)

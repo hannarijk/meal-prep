@@ -256,7 +256,7 @@ func TestRecipeHandler_CreateRecipe_Success(t *testing.T) {
 	request := testdata.ValidCreateRequest()
 	expectedRecipe := testdata.NewRecipeBuilder().WithName(request.Name).BuildPtr()
 
-	setup.recipeService.On("CreateRecipe", mock.AnythingOfType("models.CreateRecipeRequest")).
+	setup.recipeService.On("CreateRecipe", 1, mock.AnythingOfType("models.CreateRecipeRequest")).
 		Return(expectedRecipe, nil)
 
 	requestBody, _ := json.Marshal(request)
@@ -351,7 +351,7 @@ func TestRecipeHandler_CreateRecipe_ValidationErrors(t *testing.T) {
 			setup := setupRecipeHandlerTest()
 			request := testdata.ValidCreateRequest()
 
-			setup.recipeService.On("CreateRecipe", mock.AnythingOfType("models.CreateRecipeRequest")).
+			setup.recipeService.On("CreateRecipe", 1, mock.AnythingOfType("models.CreateRecipeRequest")).
 				Return(nil, tc.serviceError)
 
 			requestBody, _ := json.Marshal(request)
@@ -380,7 +380,7 @@ func TestRecipeHandler_CreateRecipe_InternalServerError(t *testing.T) {
 	setup := setupRecipeHandlerTest()
 	request := testdata.ValidCreateRequest()
 
-	setup.recipeService.On("CreateRecipe", mock.AnythingOfType("models.CreateRecipeRequest")).
+	setup.recipeService.On("CreateRecipe", 1, mock.AnythingOfType("models.CreateRecipeRequest")).
 		Return(nil, errors.New("database connection failed"))
 
 	requestBody, _ := json.Marshal(request)
@@ -416,7 +416,7 @@ func TestRecipeHandler_UpdateRecipe_Success(t *testing.T) {
 	}
 	expectedRecipe := testdata.NewRecipeBuilder().WithName("Updated Recipe").BuildPtr()
 
-	setup.recipeService.On("UpdateRecipe", 1, mock.AnythingOfType("models.UpdateRecipeRequest")).
+	setup.recipeService.On("UpdateRecipe", 1, 1, mock.AnythingOfType("models.UpdateRecipeRequest")).
 		Return(expectedRecipe, nil)
 
 	requestBody, _ := json.Marshal(request)
@@ -469,7 +469,7 @@ func TestRecipeHandler_UpdateRecipe_RecipeNotFound(t *testing.T) {
 	setup := setupRecipeHandlerTest()
 	request := models.UpdateRecipeRequest{Name: "Updated"}
 
-	setup.recipeService.On("UpdateRecipe", 999, mock.AnythingOfType("models.UpdateRecipeRequest")).
+	setup.recipeService.On("UpdateRecipe", 1, 999, mock.AnythingOfType("models.UpdateRecipeRequest")).
 		Return(nil, domain.ErrRecipeNotFound)
 
 	requestBody, _ := json.Marshal(request)
@@ -500,7 +500,7 @@ func TestRecipeHandler_UpdateRecipe_RecipeNotFound(t *testing.T) {
 func TestRecipeHandler_DeleteRecipe_Success(t *testing.T) {
 	setup := setupRecipeHandlerTest()
 
-	setup.recipeService.On("DeleteRecipe", 1).Return(nil)
+	setup.recipeService.On("DeleteRecipe", 1, 1).Return(nil)
 
 	req := httptest.NewRequest("DELETE", "/recipes/1", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
@@ -546,7 +546,7 @@ func TestRecipeHandler_DeleteRecipe_InvalidID(t *testing.T) {
 func TestRecipeHandler_DeleteRecipe_NotFound(t *testing.T) {
 	setup := setupRecipeHandlerTest()
 
-	setup.recipeService.On("DeleteRecipe", 999).Return(domain.ErrRecipeNotFound)
+	setup.recipeService.On("DeleteRecipe", 1, 999).Return(domain.ErrRecipeNotFound)
 
 	req := httptest.NewRequest("DELETE", "/recipes/999", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "999"})
@@ -563,6 +563,58 @@ func TestRecipeHandler_DeleteRecipe_NotFound(t *testing.T) {
 	err := json.NewDecoder(recorder.Body).Decode(&response)
 	assert.NoError(t, err)
 	assert.Equal(t, domain.ErrRecipeNotFound.Error(), response.Message)
+
+	setup.recipeService.AssertExpectations(t)
+}
+
+// =============================================================================
+// OWNERSHIP / FORBIDDEN TESTS
+// =============================================================================
+
+func TestRecipeHandler_UpdateRecipe_Forbidden(t *testing.T) {
+	setup := setupRecipeHandlerTest()
+	request := models.UpdateRecipeRequest{Name: "Updated", CategoryID: 1}
+
+	setup.recipeService.On("UpdateRecipe", 1, 1, mock.AnythingOfType("models.UpdateRecipeRequest")).
+		Return(nil, domain.ErrForbidden)
+
+	requestBody, _ := json.Marshal(request)
+	req := httptest.NewRequest("PUT", "/recipes/1", bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+	req = mux.SetURLVars(req, map[string]string{"id": "1"})
+	req = test.AddAuthContext(req, 1, "test@example.com")
+
+	recorder := httptest.NewRecorder()
+	setup.handler.UpdateRecipe(recorder, req)
+
+	assert.Equal(t, http.StatusForbidden, recorder.Code)
+
+	var response models.ErrorResponse
+	err := json.NewDecoder(recorder.Body).Decode(&response)
+	assert.NoError(t, err)
+	assert.Equal(t, domain.ErrForbidden.Error(), response.Message)
+
+	setup.recipeService.AssertExpectations(t)
+}
+
+func TestRecipeHandler_DeleteRecipe_Forbidden(t *testing.T) {
+	setup := setupRecipeHandlerTest()
+
+	setup.recipeService.On("DeleteRecipe", 1, 1).Return(domain.ErrForbidden)
+
+	req := httptest.NewRequest("DELETE", "/recipes/1", nil)
+	req = mux.SetURLVars(req, map[string]string{"id": "1"})
+	req = test.AddAuthContext(req, 1, "test@example.com")
+
+	recorder := httptest.NewRecorder()
+	setup.handler.DeleteRecipe(recorder, req)
+
+	assert.Equal(t, http.StatusForbidden, recorder.Code)
+
+	var response models.ErrorResponse
+	err := json.NewDecoder(recorder.Body).Decode(&response)
+	assert.NoError(t, err)
+	assert.Equal(t, domain.ErrForbidden.Error(), response.Message)
 
 	setup.recipeService.AssertExpectations(t)
 }

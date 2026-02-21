@@ -39,24 +39,24 @@ func (m *MockRecipeService) GetRecipesByCategory(categoryID int) ([]models.Recip
 	return args.Get(0).([]models.Recipe), args.Error(1)
 }
 
-func (m *MockRecipeService) CreateRecipe(req models.CreateRecipeRequest) (*models.Recipe, error) {
-	args := m.Called(req)
+func (m *MockRecipeService) CreateRecipe(userID int, req models.CreateRecipeRequest) (*models.Recipe, error) {
+	args := m.Called(userID, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*models.Recipe), args.Error(1)
 }
 
-func (m *MockRecipeService) UpdateRecipe(id int, req models.UpdateRecipeRequest) (*models.Recipe, error) {
-	args := m.Called(id, req)
+func (m *MockRecipeService) UpdateRecipe(userID int, id int, req models.UpdateRecipeRequest) (*models.Recipe, error) {
+	args := m.Called(userID, id, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*models.Recipe), args.Error(1)
 }
 
-func (m *MockRecipeService) DeleteRecipe(id int) error {
-	args := m.Called(id)
+func (m *MockRecipeService) DeleteRecipe(userID int, id int) error {
+	args := m.Called(userID, id)
 	return args.Error(0)
 }
 
@@ -96,16 +96,16 @@ func (m *MockRecipeService) GetRecipesByCategoryWithIngredients(categoryID int) 
 	return args.Get(0).([]models.RecipeWithIngredients), args.Error(1)
 }
 
-func (m *MockRecipeService) CreateRecipeWithIngredients(req models.CreateRecipeWithIngredientsRequest) (*models.RecipeWithIngredients, error) {
-	args := m.Called(req)
+func (m *MockRecipeService) CreateRecipeWithIngredients(userID int, req models.CreateRecipeWithIngredientsRequest) (*models.RecipeWithIngredients, error) {
+	args := m.Called(userID, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*models.RecipeWithIngredients), args.Error(1)
 }
 
-func (m *MockRecipeService) UpdateRecipeWithIngredients(id int, req models.UpdateRecipeWithIngredientsRequest) (*models.RecipeWithIngredients, error) {
-	args := m.Called(id, req)
+func (m *MockRecipeService) UpdateRecipeWithIngredients(userID int, id int, req models.UpdateRecipeWithIngredientsRequest) (*models.RecipeWithIngredients, error) {
+	args := m.Called(userID, id, req)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

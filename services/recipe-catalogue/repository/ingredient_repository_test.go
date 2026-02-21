@@ -643,7 +643,7 @@ func (suite *IngredientRepositoryTestSuite) TestGetRecipesUsingIngredient_Return
 	// Arrange
 	now := time.Now()
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT DISTINCT r.id, r.name, r.description, r.category_id, r.created_at, r.updated_at,
+		SELECT DISTINCT r.id, r.user_id, r.name, r.description, r.category_id, r.created_at, r.updated_at,
 		                c.id, c.name, c.description
 		FROM recipe_catalogue.recipes r
 		LEFT JOIN recipe_catalogue.categories c ON r.category_id = c.id
@@ -652,11 +652,11 @@ func (suite *IngredientRepositoryTestSuite) TestGetRecipesUsingIngredient_Return
 		ORDER BY r.name`)).
 		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "name", "description", "category_id", "created_at", "updated_at",
+			"id", "user_id", "name", "description", "category_id", "created_at", "updated_at",
 			"c_id", "c_name", "c_description",
 		}).
-			AddRow(1, "Pasta Dish", "Italian pasta", 1, now, now, 1, "Italian", "Italian cuisine").
-			AddRow(2, "Tomato Soup", "Fresh soup", 2, now, now, 2, "Soup", "Soup category"))
+			AddRow(1, 1, "Pasta Dish", "Italian pasta", 1, now, now, 1, "Italian", "Italian cuisine").
+			AddRow(2, 1, "Tomato Soup", "Fresh soup", 2, now, now, 2, "Soup", "Soup category"))
 
 	// Act
 	recipes, err := suite.repo.GetRecipesUsingIngredient(1)

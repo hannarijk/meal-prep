@@ -8,6 +8,7 @@ var (
 	ErrRecipeNameRequired = errors.New("recipe name is required")
 	ErrCategoryNotFound   = errors.New("category not found")
 	ErrInvalidCategory    = errors.New("invalid category ID")
+	ErrForbidden          = errors.New("you do not have permission to modify this recipe")
 
 	// Ingredient-specific (only recipe-catalogue uses these)
 	ErrIngredientNotFound     = errors.New("ingredient not found")

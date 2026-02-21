@@ -137,6 +137,7 @@ func initializeTestSchema(db *database.DB) error {
 
 		CREATE TABLE IF NOT EXISTS recipe_catalogue.recipes (
 			id SERIAL PRIMARY KEY,
+			user_id INTEGER NOT NULL DEFAULT 1,
 			name VARCHAR(200) NOT NULL,
 			description TEXT,
 			category_id INTEGER REFERENCES recipe_catalogue.categories(id),

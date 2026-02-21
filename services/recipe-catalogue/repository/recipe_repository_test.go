@@ -45,17 +45,17 @@ func (suite *RecipeRepositoryTestSuite) TestGetAll_ReturnsRecipes() {
 	// Arrange
 	now := time.Now()
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT d.id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
+		SELECT d.id, d.user_id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 		       c.id, c.name, c.description
 		FROM recipe_catalogue.recipes d
 		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
 		ORDER BY d.name`)).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "name", "description", "category_id", "created_at", "updated_at",
+			"id", "user_id", "name", "description", "category_id", "created_at", "updated_at",
 			"c_id", "c_name", "c_description",
 		}).
-			AddRow(1, "Pasta", "Italian dish", 1, now, now, 1, "Italian", "Italian cuisine").
-			AddRow(2, "Salad", "Fresh salad", 2, now, now, 2, "Healthy", "Healthy food"))
+			AddRow(1, 1, "Pasta", "Italian dish", 1, now, now, 1, "Italian", "Italian cuisine").
+			AddRow(2, 1, "Salad", "Fresh salad", 2, now, now, 2, "Healthy", "Healthy food"))
 
 	// Act
 	recipes, err := suite.repo.GetAll()
@@ -71,7 +71,7 @@ func (suite *RecipeRepositoryTestSuite) TestGetAll_ReturnsRecipes() {
 func (suite *RecipeRepositoryTestSuite) TestGetAll_DatabaseError() {
 	// Arrange
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT d.id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
+		SELECT d.id, d.user_id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 		       c.id, c.name, c.description
 		FROM recipe_catalogue.recipes d
 		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
@@ -91,17 +91,17 @@ func (suite *RecipeRepositoryTestSuite) TestGetByID_ReturnsRecipe() {
 	// Arrange
 	now := time.Now()
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT d.id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
+		SELECT d.id, d.user_id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 		       c.id, c.name, c.description
 		FROM recipe_catalogue.recipes d
 		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
 		WHERE d.id = $1`)).
 		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "name", "description", "category_id", "created_at", "updated_at",
+			"id", "user_id", "name", "description", "category_id", "created_at", "updated_at",
 			"c_id", "c_name", "c_description",
 		}).
-			AddRow(1, "Carbonara", "Creamy pasta", 1, now, now, 1, "Italian", "Italian cuisine"))
+			AddRow(1, 1, "Carbonara", "Creamy pasta", 1, now, now, 1, "Italian", "Italian cuisine"))
 
 	// Act
 	recipe, err := suite.repo.GetByID(1)
@@ -116,7 +116,7 @@ func (suite *RecipeRepositoryTestSuite) TestGetByID_ReturnsRecipe() {
 func (suite *RecipeRepositoryTestSuite) TestGetByID_NotFound() {
 	// Arrange
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT d.id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
+		SELECT d.id, d.user_id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 		       c.id, c.name, c.description
 		FROM recipe_catalogue.recipes d
 		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
@@ -137,7 +137,7 @@ func (suite *RecipeRepositoryTestSuite) TestGetByCategory_ReturnsFilteredRecipes
 	// Arrange
 	now := time.Now()
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT d.id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
+		SELECT d.id, d.user_id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 		       c.id, c.name, c.description
 		FROM recipe_catalogue.recipes d
 		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
@@ -145,10 +145,10 @@ func (suite *RecipeRepositoryTestSuite) TestGetByCategory_ReturnsFilteredRecipes
 		ORDER BY d.name`)).
 		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "name", "description", "category_id", "created_at", "updated_at",
+			"id", "user_id", "name", "description", "category_id", "created_at", "updated_at",
 			"c_id", "c_name", "c_description",
 		}).
-			AddRow(1, "Pasta Dish", "Italian pasta", 1, now, now, 1, "Italian", "Italian cuisine"))
+			AddRow(1, 1, "Pasta Dish", "Italian pasta", 1, now, now, 1, "Italian", "Italian cuisine"))
 
 	// Act
 	recipes, err := suite.repo.GetByCategory(1)
@@ -161,6 +161,7 @@ func (suite *RecipeRepositoryTestSuite) TestGetByCategory_ReturnsFilteredRecipes
 
 func (suite *RecipeRepositoryTestSuite) TestCreate_InsertsAndReturnsRecipe() {
 	// Arrange
+	userID := 1
 	req := models.CreateRecipeRequest{
 		Name:        "New Recipe",
 		Description: "Tasty dish",
@@ -169,15 +170,15 @@ func (suite *RecipeRepositoryTestSuite) TestCreate_InsertsAndReturnsRecipe() {
 	now := time.Now()
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		INSERT INTO recipe_catalogue.recipes (name, description, category_id, created_at, updated_at)
-		VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-		RETURNING id, name, description, category_id, created_at, updated_at`)).
-		WithArgs(req.Name, req.Description, req.CategoryID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "category_id", "created_at", "updated_at"}).
-			AddRow(1, req.Name, req.Description, req.CategoryID, now, now))
+		INSERT INTO recipe_catalogue.recipes (name, description, category_id, user_id, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		RETURNING id, user_id, name, description, category_id, created_at, updated_at`)).
+		WithArgs(req.Name, req.Description, req.CategoryID, userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "name", "description", "category_id", "created_at", "updated_at"}).
+			AddRow(1, userID, req.Name, req.Description, req.CategoryID, now, now))
 
 	// Act
-	recipe, err := suite.repo.Create(req)
+	recipe, err := suite.repo.Create(userID, req)
 
 	// Assert
 	assert.NoError(suite.T(), err)
@@ -185,10 +186,12 @@ func (suite *RecipeRepositoryTestSuite) TestCreate_InsertsAndReturnsRecipe() {
 	assert.Equal(suite.T(), req.Name, recipe.Name)
 	assert.Equal(suite.T(), req.Description, *recipe.Description)
 	assert.Equal(suite.T(), req.CategoryID, *recipe.CategoryID)
+	assert.Equal(suite.T(), userID, recipe.UserID)
 }
 
 func (suite *RecipeRepositoryTestSuite) TestCreate_DatabaseError() {
 	// Arrange
+	userID := 1
 	req := models.CreateRecipeRequest{
 		Name:        "Recipe",
 		Description: "Description",
@@ -196,14 +199,14 @@ func (suite *RecipeRepositoryTestSuite) TestCreate_DatabaseError() {
 	}
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		INSERT INTO recipe_catalogue.recipes (name, description, category_id, created_at, updated_at)
-		VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-		RETURNING id, name, description, category_id, created_at, updated_at`)).
-		WithArgs(req.Name, req.Description, req.CategoryID).
+		INSERT INTO recipe_catalogue.recipes (name, description, category_id, user_id, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		RETURNING id, user_id, name, description, category_id, created_at, updated_at`)).
+		WithArgs(req.Name, req.Description, req.CategoryID, userID).
 		WillReturnError(errors.New("constraint violation"))
 
 	// Act
-	recipe, err := suite.repo.Create(req)
+	recipe, err := suite.repo.Create(userID, req)
 
 	// Assert
 	assert.Error(suite.T(), err)
@@ -220,16 +223,16 @@ func (suite *RecipeRepositoryTestSuite) TestUpdate_UpdatesAndReturnsRecipe() {
 	now := time.Now()
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		UPDATE recipe_catalogue.recipes 
+        UPDATE recipe_catalogue.recipes
         SET name = $2,
             description = $3,
             category_id = $4,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
-		RETURNING id, name, description, category_id, created_at, updated_at`)).
+		RETURNING id, user_id, name, description, category_id, created_at, updated_at`)).
 		WithArgs(1, req.Name, req.Description, req.CategoryID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "category_id", "created_at", "updated_at"}).
-			AddRow(1, req.Name, req.Description, req.CategoryID, now, now))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "name", "description", "category_id", "created_at", "updated_at"}).
+			AddRow(1, 1, req.Name, req.Description, req.CategoryID, now, now))
 
 	// Act
 	recipe, err := suite.repo.Update(1, req)
@@ -245,13 +248,13 @@ func (suite *RecipeRepositoryTestSuite) TestUpdate_NotFound() {
 	req := models.UpdateRecipeRequest{Name: "Updated"}
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		UPDATE recipe_catalogue.recipes 
+        UPDATE recipe_catalogue.recipes
         SET name = $2,
             description = $3,
             category_id = $4,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
-		RETURNING id, name, description, category_id, created_at, updated_at`)).
+		RETURNING id, user_id, name, description, category_id, created_at, updated_at`)).
 		WithArgs(999, req.Name, req.Description, req.CategoryID).
 		WillReturnError(sql.ErrNoRows)
 
@@ -297,19 +300,19 @@ func (suite *RecipeRepositoryTestSuite) TestSearchRecipesByIngredients_ReturnsMa
 	now := time.Now()
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT DISTINCT r.id, r.name, r.description, r.category_id, r.created_at, r.updated_at,
-		                c.id, c.name, c.description
-		FROM recipe_catalogue.recipes r
-		LEFT JOIN recipe_catalogue.categories c ON r.category_id = c.id
-		JOIN recipe_catalogue.recipe_ingredients ri ON r.id = ri.recipe_id
-		WHERE ri.ingredient_id = ANY($1)
-		ORDER BY r.name`)).
+        SELECT DISTINCT r.id, r.user_id, r.name, r.description, r.category_id, r.created_at, r.updated_at,
+                        c.id, c.name, c.description
+        FROM recipe_catalogue.recipes r
+        LEFT JOIN recipe_catalogue.categories c ON r.category_id = c.id
+        JOIN recipe_catalogue.recipe_ingredients ri ON r.id = ri.recipe_id
+        WHERE ri.ingredient_id = ANY($1)
+        ORDER BY r.name`)).
 		WithArgs(sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "name", "description", "category_id", "created_at", "updated_at",
+			"id", "user_id", "name", "description", "category_id", "created_at", "updated_at",
 			"c_id", "c_name", "c_description",
 		}).
-			AddRow(1, "Recipe with Ingredients", "Uses ingredients", 1, now, now, 1, "Category", "Desc"))
+			AddRow(1, 1, "Recipe with Ingredients", "Uses ingredients", 1, now, now, 1, "Category", "Desc"))
 
 	// Act
 	recipes, err := suite.repo.SearchRecipesByIngredients(ingredientIDs)
@@ -339,17 +342,17 @@ func (suite *RecipeRepositoryTestSuite) TestGetByIDWithIngredients_ReturnsRecipe
 
 	// Mock GetByID call
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT d.id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
+		SELECT d.id, d.user_id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 		       c.id, c.name, c.description
 		FROM recipe_catalogue.recipes d
 		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
 		WHERE d.id = $1`)).
 		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "name", "description", "category_id", "created_at", "updated_at",
+			"id", "user_id", "name", "description", "category_id", "created_at", "updated_at",
 			"c_id", "c_name", "c_description",
 		}).
-			AddRow(1, "Carbonara", "Italian pasta", 1, now, now, 1, "Italian", "Italian cuisine"))
+			AddRow(1, 1, "Carbonara", "Italian pasta", 1, now, now, 1, "Italian", "Italian cuisine"))
 
 	// Mock GetRecipeIngredients call
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
@@ -386,26 +389,26 @@ func (suite *RecipeRepositoryTestSuite) TestGetAllWithIngredients_ReturnsRecipes
 
 	// Mock GetAll call
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT d.id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
+		SELECT d.id, d.user_id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 		       c.id, c.name, c.description
 		FROM recipe_catalogue.recipes d
 		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
 		ORDER BY d.name`)).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "name", "description", "category_id", "created_at", "updated_at",
+			"id", "user_id", "name", "description", "category_id", "created_at", "updated_at",
 			"c_id", "c_name", "c_description",
 		}).
-			AddRow(1, "Recipe 1", "Desc 1", 1, now, now, 1, "Category 1", "Cat desc").
-			AddRow(2, "Recipe 2", "Desc 2", 2, now, now, 2, "Category 2", "Cat desc"))
+			AddRow(1, 1, "Recipe 1", "Desc 1", 1, now, now, 1, "Category 1", "Cat desc").
+			AddRow(2, 1, "Recipe 2", "Desc 2", 2, now, now, 2, "Category 2", "Cat desc"))
 
 	// Mock GetIngredientsForRecipes call
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT ri.id, ri.recipe_id, ri.ingredient_id, ri.quantity, ri.unit, ri.notes, ri.created_at,
-		       i.id, i.name, i.description, i.category, i.created_at
-		FROM recipe_catalogue.recipe_ingredients ri
-		JOIN recipe_catalogue.ingredients i ON ri.ingredient_id = i.id
-		WHERE ri.recipe_id = ANY($1)
-		ORDER BY ri.recipe_id, ri.id`)).
+        SELECT ri.id, ri.recipe_id, ri.ingredient_id, ri.quantity, ri.unit, ri.notes, ri.created_at,
+               i.id, i.name, i.description, i.category, i.created_at
+        FROM recipe_catalogue.recipe_ingredients ri
+        JOIN recipe_catalogue.ingredients i ON ri.ingredient_id = i.id
+        WHERE ri.recipe_id = ANY($1)
+        ORDER BY ri.recipe_id, ri.id`)).
 		WithArgs(sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"ri_id", "recipe_id", "ingredient_id", "quantity", "unit", "notes", "ri_created_at",
@@ -431,6 +434,7 @@ func (suite *RecipeRepositoryTestSuite) TestGetAllWithIngredients_ReturnsRecipes
 
 func (suite *RecipeRepositoryTestSuite) TestCreateWithIngredients_CommitsTransaction() {
 	// Arrange
+	userID := 1
 	req := models.CreateRecipeWithIngredientsRequest{
 		Name:        "Recipe with Ingredients",
 		Description: stringPtr("A recipe with ingredients"),
@@ -446,17 +450,17 @@ func (suite *RecipeRepositoryTestSuite) TestCreateWithIngredients_CommitsTransac
 
 	// Expect recipe creation
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		INSERT INTO recipe_catalogue.recipes (name, description, category_id, created_at, updated_at)
-		VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-		RETURNING id, name, description, category_id, created_at, updated_at`)).
-		WithArgs(req.Name, req.Description, req.CategoryID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "category_id", "created_at", "updated_at"}).
-			AddRow(1, req.Name, *req.Description, req.CategoryID, now, now))
+		INSERT INTO recipe_catalogue.recipes (name, description, category_id, user_id, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		RETURNING id, user_id, name, description, category_id, created_at, updated_at`)).
+		WithArgs(req.Name, req.Description, req.CategoryID, userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "name", "description", "category_id", "created_at", "updated_at"}).
+			AddRow(1, userID, req.Name, *req.Description, req.CategoryID, now, now))
 
 	// Expect ingredient addition
 	suite.mock.ExpectExec(regexp.QuoteMeta(`
-		INSERT INTO recipe_catalogue.recipe_ingredients (recipe_id, ingredient_id, quantity, unit, notes, created_at)
-		VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`)).
+			INSERT INTO recipe_catalogue.recipe_ingredients (recipe_id, ingredient_id, quantity, unit, notes, created_at)
+			VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`)).
 		WithArgs(1, 1, 100.0, "grams", stringPtr("Fresh")).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -480,20 +484,20 @@ func (suite *RecipeRepositoryTestSuite) TestCreateWithIngredients_CommitsTransac
 
 	// Expect GetByID call for category information
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT d.id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
+		SELECT d.id, d.user_id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 		       c.id, c.name, c.description
 		FROM recipe_catalogue.recipes d
 		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
 		WHERE d.id = $1`)).
 		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "name", "description", "category_id", "created_at", "updated_at",
+			"id", "user_id", "name", "description", "category_id", "created_at", "updated_at",
 			"c_id", "c_name", "c_description",
 		}).
-			AddRow(1, req.Name, *req.Description, req.CategoryID, now, now, req.CategoryID, "Category", "Category desc"))
+			AddRow(1, userID, req.Name, *req.Description, req.CategoryID, now, now, req.CategoryID, "Category", "Category desc"))
 
 	// Act
-	result, err := suite.repo.CreateWithIngredients(req)
+	result, err := suite.repo.CreateWithIngredients(userID, req)
 
 	// Assert
 	assert.NoError(suite.T(), err)
@@ -504,6 +508,7 @@ func (suite *RecipeRepositoryTestSuite) TestCreateWithIngredients_CommitsTransac
 
 func (suite *RecipeRepositoryTestSuite) TestCreateWithIngredients_RollsBackOnError() {
 	// Arrange
+	userID := 1
 	req := models.CreateRecipeWithIngredientsRequest{
 		Name:       "Recipe",
 		CategoryID: 1,
@@ -518,17 +523,17 @@ func (suite *RecipeRepositoryTestSuite) TestCreateWithIngredients_RollsBackOnErr
 
 	// Expect recipe creation to succeed
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		INSERT INTO recipe_catalogue.recipes (name, description, category_id, created_at, updated_at)
-		VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-		RETURNING id, name, description, category_id, created_at, updated_at`)).
-		WithArgs(req.Name, req.Description, req.CategoryID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "category_id", "created_at", "updated_at"}).
-			AddRow(1, req.Name, "", req.CategoryID, now, now))
+		INSERT INTO recipe_catalogue.recipes (name, description, category_id, user_id, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		RETURNING id, user_id, name, description, category_id, created_at, updated_at`)).
+		WithArgs(req.Name, req.Description, req.CategoryID, userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "name", "description", "category_id", "created_at", "updated_at"}).
+			AddRow(1, userID, req.Name, "", req.CategoryID, now, now))
 
 	// Expect ingredient addition to fail
 	suite.mock.ExpectExec(regexp.QuoteMeta(`
-		INSERT INTO recipe_catalogue.recipe_ingredients (recipe_id, ingredient_id, quantity, unit, notes, created_at)
-		VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`)).
+			INSERT INTO recipe_catalogue.recipe_ingredients (recipe_id, ingredient_id, quantity, unit, notes, created_at)
+			VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`)).
 		WithArgs(1, 1, 100.0, "grams", (*string)(nil)).
 		WillReturnError(errors.New("constraint violation"))
 
@@ -536,7 +541,7 @@ func (suite *RecipeRepositoryTestSuite) TestCreateWithIngredients_RollsBackOnErr
 	suite.mock.ExpectRollback()
 
 	// Act
-	result, err := suite.repo.CreateWithIngredients(req)
+	result, err := suite.repo.CreateWithIngredients(userID, req)
 
 	// Assert
 	assert.Error(suite.T(), err)
@@ -560,16 +565,16 @@ func (suite *RecipeRepositoryTestSuite) TestUpdateWithIngredients_UpdatesBothRec
 
 	// Expect recipe update
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		UPDATE recipe_catalogue.recipes 
+		UPDATE recipe_catalogue.recipes
 		SET name = COALESCE(NULLIF($2, ''), name),
 		    description = COALESCE($3, description),
 		    category_id = COALESCE(NULLIF($4, 0), category_id),
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
-		RETURNING id, name, description, category_id, created_at, updated_at`)).
+		RETURNING id, user_id, name, description, category_id, created_at, updated_at`)).
 		WithArgs(1, req.Name, req.Description, req.CategoryID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "category_id", "created_at", "updated_at"}).
-			AddRow(1, req.Name, req.Description, 1, now, now))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "name", "description", "category_id", "created_at", "updated_at"}).
+			AddRow(1, 1, req.Name, req.Description, 1, now, now))
 
 	// Expect ingredient deletion
 	suite.mock.ExpectExec(regexp.QuoteMeta("DELETE FROM recipe_catalogue.recipe_ingredients WHERE recipe_id = $1")).
@@ -578,8 +583,8 @@ func (suite *RecipeRepositoryTestSuite) TestUpdateWithIngredients_UpdatesBothRec
 
 	// Expect ingredient addition
 	suite.mock.ExpectExec(regexp.QuoteMeta(`
-		INSERT INTO recipe_catalogue.recipe_ingredients (recipe_id, ingredient_id, quantity, unit, notes, created_at)
-		VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`)).
+			INSERT INTO recipe_catalogue.recipe_ingredients (recipe_id, ingredient_id, quantity, unit, notes, created_at)
+			VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`)).
 		WithArgs(1, 1, 150.0, "grams", (*string)(nil)).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -588,17 +593,17 @@ func (suite *RecipeRepositoryTestSuite) TestUpdateWithIngredients_UpdatesBothRec
 
 	// Mock GetByIDWithIngredients call after commit
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT d.id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
+		SELECT d.id, d.user_id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 		       c.id, c.name, c.description
 		FROM recipe_catalogue.recipes d
 		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
 		WHERE d.id = $1`)).
 		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "name", "description", "category_id", "created_at", "updated_at",
+			"id", "user_id", "name", "description", "category_id", "created_at", "updated_at",
 			"c_id", "c_name", "c_description",
 		}).
-			AddRow(1, req.Name, req.Description, 1, now, now, 1, "Category", "Desc"))
+			AddRow(1, 1, req.Name, req.Description, 1, now, now, 1, "Category", "Desc"))
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT ri.id, ri.recipe_id, ri.ingredient_id, ri.quantity, ri.unit, ri.notes, ri.created_at,
@@ -638,33 +643,33 @@ func (suite *RecipeRepositoryTestSuite) TestUpdateWithIngredients_SkipsIngredien
 
 	// Expect only recipe update, no ingredient operations
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		UPDATE recipe_catalogue.recipes 
+		UPDATE recipe_catalogue.recipes
 		SET name = COALESCE(NULLIF($2, ''), name),
 		    description = COALESCE($3, description),
 		    category_id = COALESCE(NULLIF($4, 0), category_id),
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
-		RETURNING id, name, description, category_id, created_at, updated_at`)).
+		RETURNING id, user_id, name, description, category_id, created_at, updated_at`)).
 		WithArgs(1, req.Name, req.Description, req.CategoryID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "category_id", "created_at", "updated_at"}).
-			AddRow(1, req.Name, "", 1, now, now))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "name", "description", "category_id", "created_at", "updated_at"}).
+			AddRow(1, 1, req.Name, "", 1, now, now))
 
 	// Expect commit (no ingredient operations)
 	suite.mock.ExpectCommit()
 
 	// Mock GetByIDWithIngredients call
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT d.id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
+		SELECT d.id, d.user_id, d.name, d.description, d.category_id, d.created_at, d.updated_at,
 		       c.id, c.name, c.description
 		FROM recipe_catalogue.recipes d
 		LEFT JOIN recipe_catalogue.categories c ON d.category_id = c.id
 		WHERE d.id = $1`)).
 		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "name", "description", "category_id", "created_at", "updated_at",
+			"id", "user_id", "name", "description", "category_id", "created_at", "updated_at",
 			"c_id", "c_name", "c_description",
 		}).
-			AddRow(1, req.Name, "", 1, now, now, 1, "Category", "Desc"))
+			AddRow(1, 1, req.Name, "", 1, now, now, 1, "Category", "Desc"))
 
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT ri.id, ri.recipe_id, ri.ingredient_id, ri.quantity, ri.unit, ri.notes, ri.created_at,
@@ -696,28 +701,28 @@ func (suite *RecipeRepositoryTestSuite) TestSearchRecipesByIngredientsWithIngred
 
 	// Mock SearchRecipesByIngredients call
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT DISTINCT r.id, r.name, r.description, r.category_id, r.created_at, r.updated_at,
-		                c.id, c.name, c.description
-		FROM recipe_catalogue.recipes r
-		LEFT JOIN recipe_catalogue.categories c ON r.category_id = c.id
-		JOIN recipe_catalogue.recipe_ingredients ri ON r.id = ri.recipe_id
-		WHERE ri.ingredient_id = ANY($1)
-		ORDER BY r.name`)).
+        SELECT DISTINCT r.id, r.user_id, r.name, r.description, r.category_id, r.created_at, r.updated_at,
+                        c.id, c.name, c.description
+        FROM recipe_catalogue.recipes r
+        LEFT JOIN recipe_catalogue.categories c ON r.category_id = c.id
+        JOIN recipe_catalogue.recipe_ingredients ri ON r.id = ri.recipe_id
+        WHERE ri.ingredient_id = ANY($1)
+        ORDER BY r.name`)).
 		WithArgs(sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "name", "description", "category_id", "created_at", "updated_at",
+			"id", "user_id", "name", "description", "category_id", "created_at", "updated_at",
 			"c_id", "c_name", "c_description",
 		}).
-			AddRow(1, "Recipe with Ingredients", "Uses ingredients", 1, now, now, 1, "Category", "Desc"))
+			AddRow(1, 1, "Recipe with Ingredients", "Uses ingredients", 1, now, now, 1, "Category", "Desc"))
 
 	// Mock GetIngredientsForRecipes call
 	suite.mock.ExpectQuery(regexp.QuoteMeta(`
-		SELECT ri.id, ri.recipe_id, ri.ingredient_id, ri.quantity, ri.unit, ri.notes, ri.created_at,
-		       i.id, i.name, i.description, i.category, i.created_at
-		FROM recipe_catalogue.recipe_ingredients ri
-		JOIN recipe_catalogue.ingredients i ON ri.ingredient_id = i.id
-		WHERE ri.recipe_id = ANY($1)
-		ORDER BY ri.recipe_id, ri.id`)).
+        SELECT ri.id, ri.recipe_id, ri.ingredient_id, ri.quantity, ri.unit, ri.notes, ri.created_at,
+               i.id, i.name, i.description, i.category, i.created_at
+        FROM recipe_catalogue.recipe_ingredients ri
+        JOIN recipe_catalogue.ingredients i ON ri.ingredient_id = i.id
+        WHERE ri.recipe_id = ANY($1)
+        ORDER BY ri.recipe_id, ri.id`)).
 		WithArgs(sqlmock.AnyArg()).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"ri_id", "recipe_id", "ingredient_id", "quantity", "unit", "notes", "ri_created_at",

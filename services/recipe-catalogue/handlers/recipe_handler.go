@@ -142,7 +142,6 @@ func (h *RecipeHandler) CreateRecipe(w http.ResponseWriter, r *http.Request) {
 		models.WriteErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	_ = user // We have the authenticated user if needed for audit logs, etc.
 
 	var req models.CreateRecipeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -150,7 +149,7 @@ func (h *RecipeHandler) CreateRecipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	recipe, err := h.recipeService.CreateRecipe(req)
+	recipe, err := h.recipeService.CreateRecipe(user.UserID, req)
 	if err != nil {
 		switch err {
 		case domain.ErrRecipeNameRequired:
@@ -174,7 +173,6 @@ func (h *RecipeHandler) UpdateRecipe(w http.ResponseWriter, r *http.Request) {
 		models.WriteErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	_ = user
 
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -189,13 +187,15 @@ func (h *RecipeHandler) UpdateRecipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	recipe, err := h.recipeService.UpdateRecipe(id, req)
+	recipe, err := h.recipeService.UpdateRecipe(user.UserID, id, req)
 	if err != nil {
 		switch err {
 		case domain.ErrRecipeNameRequired:
 			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case domain.ErrRecipeNotFound:
 			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
+		case domain.ErrForbidden:
+			models.WriteErrorResponse(w, err.Error(), http.StatusForbidden)
 		case domain.ErrCategoryNotFound:
 			models.WriteErrorResponse(w, err.Error(), http.StatusBadRequest)
 		case domain.ErrInvalidCategory:
@@ -215,7 +215,6 @@ func (h *RecipeHandler) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
 		models.WriteErrorResponse(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	_ = user
 
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -224,11 +223,13 @@ func (h *RecipeHandler) DeleteRecipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.recipeService.DeleteRecipe(id)
+	err = h.recipeService.DeleteRecipe(user.UserID, id)
 	if err != nil {
 		switch err {
 		case domain.ErrRecipeNotFound:
 			models.WriteErrorResponse(w, err.Error(), http.StatusNotFound)
+		case domain.ErrForbidden:
+			models.WriteErrorResponse(w, err.Error(), http.StatusForbidden)
 		default:
 			models.WriteErrorResponse(w, "Failed to delete recipe", http.StatusInternalServerError)
 		}
